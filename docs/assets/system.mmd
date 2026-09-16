@@ -1,0 +1,53 @@
+%%{init: {'theme':'base','themeVariables':{
+  'background':'#080C16','primaryColor':'#101626','primaryTextColor':'#F1F5F9',
+  'primaryBorderColor':'#00E1FF','lineColor':'#8FA3BF','secondaryColor':'#101626',
+  'tertiaryColor':'#0E1422','fontFamily':'system-ui, sans-serif','fontSize':'15px'
+},'flowchart':{'curve':'basis','nodeSpacing':55,'rankSpacing':60}}}%%
+flowchart TB
+
+  subgraph YOURS["WHAT YOU WRITE — plain markdown, yours either way"]
+    direction LR
+    ADR["<b>Decision records</b><br/>one file per decision"]
+    STATE["<b>STATE.md · plans.md</b><br/>the current-state brief"]
+  end
+
+  subgraph RECORDS["THE RECORD — k-mem keeps these in step"]
+    direction LR
+    MAP["<b>.claude/adr_map.json</b><br/>which decisions govern which paths"]
+    TICKET["<b>DevFlow ticket</b><br/>backlog → active → blocked → done"]
+  end
+
+  START["<b>Session start</b><br/>the brief, the inventory, and what is<br/>active, blocked or ready to unblock"]
+
+  LLM["<b>The model</b> — sampled, no log of attention<br/>Does it read the decision that governs this file?<br/>Does reading it change what it writes?<br/>A transcript shows a file was opened. It never shows it was used."]
+
+  TRANSCRIPT["<b>The transcript</b><br/>every tool call, written by the harness"]
+  GATE["<b>The gate</b><br/>Is there a read of every decision<br/>governing this path in this transcript?"]
+  ALLOW(["allow — the edit lands"])
+  REFUSE(["refuse — and name the files to read"])
+
+  ADR --> MAP
+  ADR -- "outstanding work becomes a ticket" --> TICKET
+  STATE --> START
+  MAP --> START
+  TICKET --> START
+  START -- "injected every session" --> LLM
+  LLM -. "a Read call, if it makes one" .-> TRANSCRIPT
+  LLM == "proposes a write" ==> GATE
+  TRANSCRIPT == "the recorded fact" ==> GATE
+  GATE --> ALLOW
+  GATE --> REFUSE
+  REFUSE -. "read them, re-issue the identical edit" .-> LLM
+  ALLOW -- "the work lands, the ticket closes" --> TICKET
+
+  classDef yours fill:#0E1422,stroke:#64748B,color:#94A3B8
+  classDef kmem fill:#101626,stroke:#00E1FF,color:#F1F5F9,stroke-width:2px
+  classDef sampled fill:#1A140C,stroke:#FF941A,color:#F1F5F9,stroke-width:3px
+  classDef ok fill:#0E1422,stroke:#4ADE80,color:#4ADE80
+  classDef no fill:#0E1422,stroke:#F87171,color:#F87171
+
+  class ADR,STATE,TRANSCRIPT yours
+  class MAP,TICKET,START,GATE kmem
+  class LLM sampled
+  class ALLOW ok
+  class REFUSE no

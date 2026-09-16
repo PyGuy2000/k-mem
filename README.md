@@ -27,7 +27,7 @@ Storage is well served. A [public review index](https://zby.github.io/commonplac
 
 <div align="center">
 
-<img src="docs/assets/where-retrieval-sits.png" alt="Three zones. A deterministic band holds the files, the hooks and the transcript. A sampled band holds the model, where whether it reads a decision and whether that reading changes its output cannot be observed. The gate sits below, reading the transcript and never the model, and answers allow or refuse." width="900">
+<img src="docs/assets/the-fallacy.png" alt="Three bands. The assumption: rules are written, the model reads them, the code follows. What the loop confirms: the file reaching context is certain, the model is not, and two questions stay open. Where the rest of the field works: most effort goes into getting rules in, almost none into confirming they were read or applied. What k-mem changes: the first question closes, the second stays open." width="900">
 
 </div>
 
@@ -63,6 +63,12 @@ That also installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the tick
 ---
 
 ## What you get
+
+<div align="center">
+
+<img src="docs/assets/the-system.png" alt="The whole loop. What you write feeds the map and the tickets. Session start delivers the brief, the inventory and the ticket status. The model sits in a sampled zone. It proposes a write, the gate reads the transcript, and answers allow or refuse. An allowed edit closes a ticket; a refusal sends the session back to read." width="960">
+
+</div>
 
 **A read-before-write gate.** `.claude/adr_map.json` maps paths to the decisions that govern them. A write under a governed path is refused until the session transcript shows those decision files were read. Reading them and re-issuing the identical edit is the only way through. The gate sees the direct write tools, the MCP filesystem tools, and Bash commands that write (`sed -i`, redirects, heredocs, `cp`, `mv`, `tee`, `git checkout`, inline Python). A sweep after every Bash command logs any governed file that changed with no read record, so what the parser cannot see still gets counted. Every decision writes one evidence line to a JSONL file the model cannot edit.
 
