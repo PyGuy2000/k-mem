@@ -57,6 +57,23 @@ def test_hooks_json_wires_every_launcher_that_exists():
     assert manifest["name"] == "k-mem"
 
 
+def test_marketplace_sources_clone_without_an_ssh_key():
+    """A github source clones over SSH and fails on any machine with no GitHub key.
+
+    `claude plugin marketplace add` falls back to https; the plugin-source
+    clone inside `claude plugin install` does not. An https url works in both.
+    """
+    market = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    by_name = {p["name"]: p for p in market["plugins"]}
+    assert by_name["k-mem"]["source"] == "./plugins/k-mem"
+    for name, entry in by_name.items():
+        source = entry["source"]
+        if isinstance(source, str):
+            continue
+        assert source.get("source") != "github", f"{name}: use an https url source, not github"
+        assert str(source.get("url", "")).startswith("https://"), f"{name}: {source}"
+
+
 def test_manifest_does_not_declare_the_auto_discovered_hooks_file():
     """hooks/hooks.json loads automatically; naming it again refuses the whole plugin.
 

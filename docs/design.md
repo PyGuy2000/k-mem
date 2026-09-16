@@ -78,6 +78,24 @@ A hook that redirects raw search to the resolver. The gate's evidence of a read 
 
 Automatic memory capture. Plugins that record observations per session exist and can run beside this one.
 
+## Why DevFlow is a url source, not a github source
+
+The marketplace entry for DevFlow points at an https url:
+
+```json
+{"source": "url", "url": "https://github.com/PyGuy2000/devflow-mcp.git"}
+```
+
+A `{"source": "github", "repo": "..."}` entry clones over SSH. On a machine
+with no GitHub SSH key, which is every fresh install, that fails with a host
+key error or a publickey refusal, and the plugin never installs. `claude
+plugin marketplace add` does fall back to https and prints "SSH not
+configured, cloning via https", but the plugin-source clone inside `claude
+plugin install` does not. An https url takes the same path in both.
+
+Found on the test VM after the Docker run passed, because the image had a
+url rewrite that hid it.
+
 ## Configuration, not code
 
 Every path and every repo name lives in `config.json` under the plugin's data directory. The package carries no repo, host, client or ticket of its author's. A release check greps the tree for any and fails.

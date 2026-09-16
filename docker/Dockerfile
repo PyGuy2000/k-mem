@@ -18,10 +18,10 @@ RUN apt-get update && apt-get install -y git curl ca-certificates \
 RUN useradd -m -d /opt/tester tester
 USER tester
 WORKDIR /opt/tester
-# The plugin installer clones a github source. A bare image has no SSH host
-# key for github.com, so an ssh-form URL fails verification; rewrite to https,
-# which needs no key and no account for a public repo.
-RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
-    && git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
+# No git URL rewriting here on purpose. An earlier version rewrote github SSH
+# URLs to https, which hid a real defect: the marketplace listed DevFlow as a
+# github source, that clones over SSH, and every machine with no GitHub SSH
+# key could not install it. The image must fail the way a stranger's machine
+# fails, so the marketplace uses an https url source instead.
 COPY --chown=tester scripts/fresh_machine_test.sh /opt/tester/fresh_machine_test.sh
 ENTRYPOINT ["bash", "/opt/tester/fresh_machine_test.sh"]

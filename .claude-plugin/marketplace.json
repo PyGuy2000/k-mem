@@ -18,8 +18,8 @@
     {
       "name": "devflow",
       "source": {
-        "source": "github",
-        "repo": "PyGuy2000/devflow-mcp"
+        "source": "url",
+        "url": "https://github.com/PyGuy2000/devflow-mcp.git"
       },
       "description": "Solo ticket tracker for AI coding agents: projects, tickets with a mandatory why, dependencies, a verification gate, an ADR index, and a status report at session start.",
       "version": "0.1.0",
