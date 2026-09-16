@@ -158,20 +158,22 @@ def make_gate_demo() -> Path:
 
 
 def make_fallacy() -> Path:
-    """The belief, where in the loop it breaks, and where the check goes.
+    """Four sections with equal white headers, three columns that hold the same x
+    down the page so a reader can track one column downward.
 
-    Band 2 locates the two unverifiable steps inside the model's own sequence
-    and draws the boundary around them. Band 4 puts the gate outside that
-    boundary, reading the record. Those two placements are the argument; a
-    version without them describes the problem and never answers it.
+    Colour carries meaning rather than section: cyan for what is certain, orange
+    for what is sampled. Band 4 places the transcript and the gate outside the
+    model and shows where the transcript's line comes from, because a check that
+    appears with no origin reads as an assertion.
     """
-    W, H = 1560, 1350
+    W, H = 1560, 1424
     im = Image.new("RGBA", (W, H), NAVY + (255,))
     d = ImageDraw.Draw(im)
-    f_title, f_band = font(SANS_BOLD, 38), font(SANS_BOLD, 22)
-    f_box, f_body, f_small = font(SANS_BOLD, 22), font(SANS, 21), font(SANS, 18)
-    f_tag = font(SANS_BOLD, 15)
+    f_h, f_over = font(SANS_BOLD, 27), font(SANS_BOLD, 16)
+    f_box, f_small, f_stmt = font(SANS_BOLD, 21), font(SANS, 18), font(SANS_BOLD, 21)
+    f_tag, f_lead = font(SANS_BOLD, 15), font(SANS_BOLD, 18)
     M, GREY, PURPLE = 52, (100, 116, 139), (167, 139, 250)
+    COLS, CW, DW = [52, 432, 812, 1192], 330, 316
 
     def wrap(text, f, limit):
         out, line = [], ""
@@ -183,20 +185,22 @@ def make_fallacy() -> Path:
                 line = trial
         return out + ([line] if line else [])
 
-    def box(x, y, w, h, title, body, colour, fill=PANEL, tint=None):
-        d.rounded_rectangle([(x, y), (x + w, y + h)], radius=11, fill=(tint or fill) + (255,), outline=colour + (255,), width=3)
-        d.text((x + 16, y + 12), title, font=f_box, fill=colour)
-        yy = y + 44
+    def box(x, y, w, h, title, body, colour, tint=None, mine=False):
+        d.rounded_rectangle([(x, y), (x + w, y + h)], radius=11, fill=(tint or PANEL) + (255,), outline=colour + (255,), width=3)
+        d.text((x + 16, y + 11), title, font=f_box, fill=colour)
+        if mine:
+            tx = x + 16 + d.textbbox((0, 0), title, font=f_box)[2] + 12
+            tw = d.textbbox((0, 0), "k-mem", font=f_tag)[2] + 18
+            d.rounded_rectangle([(tx, y + 14), (tx + tw, y + 38)], radius=6, fill=CYAN + (255,))
+            d.text((tx + 9, y + 17), "k-mem", font=f_tag, fill=NAVY)
+        yy = y + 42
         for ln in body:
             for piece in wrap(ln, f_small, w - 32):
                 d.text((x + 16, yy), piece, font=f_small, fill=MUTED); yy += 23
 
-    def h_arrow(x1, x2, y, colour, label=""):
+    def h_arrow(x1, x2, y, colour):
         d.line([(x1, y), (x2, y)], fill=colour, width=3)
         d.polygon([(x2, y), (x2 - 11, y - 8), (x2 - 11, y + 8)], fill=colour)
-        if label:
-            w = d.textbbox((0, 0), label, font=f_small)[2]
-            d.text(((x1 + x2 - w) // 2, y - 30), label, font=f_small, fill=colour)
 
     def dashed_rect(x1, y1, x2, y2, colour, step=20):
         for i in range(0, x2 - x1, step):
@@ -206,85 +210,80 @@ def make_fallacy() -> Path:
             d.line([(x1, y1 + i), (x1, y1 + min(i + 10, y2 - y1))], fill=colour, width=3)
             d.line([(x2, y1 + i), (x2, y1 + min(i + 10, y2 - y1))], fill=colour, width=3)
 
-    d.text((M, 24), "What a repo full of .md files guarantees", font=f_title, fill=FG)
-    d.text((M, 74), "A file in the context window is a file in the context window. Whether it became a rule the session followed is a separate question.",
-           font=f_body, fill=MUTED)
+    d.text((M, 22), "K-MEM  ·  THE PROBLEM", font=f_over, fill=CYAN)
 
-    # --- band 1: the belief ----------------------------------------------------
-    d.text((M, 132), "THE ASSUMPTION", font=f_band, fill=GREY)
-    bw, by, bh = 420, 164, 104
-    gap = (W - 2 * M - 3 * bw) // 2
-    box(M, by, bw, bh, "The rules are written", ["CLAUDE.md, the ADRs, the notes."], GREY)
-    box(M + bw + gap, by, bw, bh, "The model reads them", ["They are in the repo, so in play."], GREY)
-    box(M + 2 * (bw + gap), by, bw, bh, "The code follows them", ["The decision holds across sessions."], GREY)
-    h_arrow(M + bw + 10, M + bw + gap - 10, by + bh // 2, GREY)
-    h_arrow(M + 2 * bw + gap + 10, M + 2 * (bw + gap) - 10, by + bh // 2, GREY)
-    d.text((M, by + bh + 16), "Written once, and assumed from then on. This is where most setups stop.", font=f_small, fill=GREY)
-
-    # --- band 2: where it actually happens, inside the model --------------------
-    d.text((M, 342), "WHERE THAT BREAKS, INSIDE ONE TURN", font=f_band, fill=ORANGE)
-    sy, sh, sw = 420, 96, 300
-    xs = [102, 454, 806, 1158]
-    dashed_rect(xs[1] - 24, sy - 34, xs[2] + sw + 24, sy + sh + 118, ORANGE)
-    bl = "THE BOUNDARY  ·  nothing outside the model can confirm either step"
-    d.text((xs[2] + sw + 24 - d.textbbox((0, 0), bl, font=f_small)[2], sy - 62), bl, font=f_small, fill=ORANGE)
-    box(xs[0], sy, sw, sh, "Context window", ["The decision is in here.", "Certain, and hook-delivered."], CYAN)
-    box(xs[1], sy, sw, sh, "1  ·  Does it call Read?", ["The tool-call decision."], ORANGE, tint=(26, 20, 12))
-    box(xs[2], sy, sw, sh, "2  ·  Attention, then tokens", ["What it writes next."], ORANGE, tint=(26, 20, 12))
-    box(xs[3], sy, sw, sh, "The edit it proposes", ["Arrives either way."], GREY)
-    for a, b in [(0, 1), (1, 2), (2, 3)]:
-        h_arrow(xs[a] + sw + 10, xs[b] - 10, sy + sh // 2, ORANGE if a else CYAN)
-    d.text((xs[1], sy + sh + 20), "A tool_use line lands in", font=f_small, fill=ORANGE)
-    d.text((xs[1], sy + sh + 43), "the transcript. Nothing", font=f_small, fill=ORANGE)
-    d.text((xs[1], sy + sh + 66), "reads it. RECORDED, UNCHECKED.", font=font(SANS_BOLD, 18), fill=ORANGE)
-    d.text((xs[2], sy + sh + 20), "Attention leaves no log.", font=f_small, fill=ORANGE)
-    d.text((xs[2], sy + sh + 43), "Nothing to check, even", font=f_small, fill=ORANGE)
-    d.text((xs[2], sy + sh + 66), "in principle. NOT RECORDED.", font=font(SANS_BOLD, 18), fill=ORANGE)
-    d.text((M, 700), "Two steps sit between a written rule and a followed one. One is recorded and unchecked. The other is not recorded at all.",
-           font=font(SANS_BOLD, 22), fill=ORANGE)
-
-    # --- band 3: where the field works -----------------------------------------
-    d.text((M, 762), "WHERE THE REST OF THE FIELD WORKS", font=f_band, fill=PURPLE)
-    ey, eh, ew = 794, 150, 420
-    for i, (head, body, colour) in enumerate([
-        ("On the context window", "Most of the effort. Better stores, better retrieval, automatic capture. 81 of 148 reviewed systems inject on their own.", PURPLE),
-        ("On step 1", "5 of 97 pushing systems check afterwards whether the memory changed behaviour. None of those five block anything.", ORANGE),
-        ("On step 2", "Nothing in that index does this, and its own synthesis says so.", ORANGE),
+    # --- 1 · the assumption ----------------------------------------------------
+    d.text((M, 54), "What a repo full of .md files suggests will happen inside the LLM", font=f_h, fill=FG)
+    by, bh, w1 = 102, 92, 420
+    g1 = (W - 2 * M - 3 * w1) // 2
+    for i, (title, body) in enumerate([
+        ("The rules are written", "CLAUDE.md, the ADRs, the notes."),
+        ("The model reads them", "They are in the repo, so in play."),
+        ("The code follows them", "The decision holds across sessions."),
     ]):
-        x = M + i * (ew + gap)
-        box(x, ey, ew, eh, head, [body], colour)
-    d.text((M, 966), "The step that already works is the one most of the field keeps improving.", font=font(SANS_BOLD, 22), fill=PURPLE)
+        box(M + i * (w1 + g1), by, w1, bh, title, [body], GREY)
+    h_arrow(M + w1 + 10, M + w1 + g1 - 10, by + bh // 2, GREY)
+    h_arrow(M + 2 * w1 + g1 + 10, M + 2 * (w1 + g1) - 10, by + bh // 2, GREY)
+    d.text((M, 206), "Written once, and assumed from then on. This is where most setups stop.", font=f_small, fill=GREY)
 
-    # --- band 4: the check, outside the boundary --------------------------------
-    d.text((M, 1026), "WHERE K-MEM PUTS THE CHECK", font=f_band, fill=CYAN)
-    gy = 1060
-    dashed_rect(M, gy, M + 560, gy + 120, ORANGE)
-    d.text((M + 18, gy + 14), "Steps 1 and 2", font=f_box, fill=ORANGE)
-    d.text((M + 18, gy + 48), "Unchanged. K-mem touches", font=f_small, fill=MUTED)
-    d.text((M + 18, gy + 71), "neither, and claims nothing", font=f_small, fill=MUTED)
-    d.text((M + 18, gy + 94), "about what happens in here.", font=f_small, fill=MUTED)
+    # --- 2 · where it breaks ---------------------------------------------------
+    d.text((M, 256), "The existence of instructions does not guarantee the LLM reads them", font=f_h, fill=FG)
+    sy, sh = 376, 96
+    d.text((COLS[1] - 22, 318), "INSIDE THE MODEL  ·  nothing outside it can confirm either step", font=f_small, fill=ORANGE)
+    dashed_rect(COLS[1] - 22, 346, COLS[2] + CW + 22, 566, ORANGE)
+    box(COLS[0], sy, CW, sh, "Context window", ["The decision is in here.", "A hook put it there. Certain."], CYAN)
+    box(COLS[1], sy, CW, sh, "1 · Does it call Read?", ["The tool-call decision."], ORANGE, tint=(26, 20, 12))
+    box(COLS[2], sy, CW, sh, "2 · Attention, then tokens", ["What it writes next."], ORANGE, tint=(26, 20, 12))
+    box(COLS[3], sy, DW, sh, "The edit it proposes", ["Arrives either way."], GREY)
+    for a, b in [(0, 1), (1, 2), (2, 3)]:
+        h_arrow(COLS[a] + CW + 10, COLS[b] - 10, sy + sh // 2, CYAN if a == 0 else ORANGE)
+    for col, lines in [(COLS[1], ["A tool_use line lands in", "the transcript. Nothing", "reads it. RECORDED, UNCHECKED."]),
+                       (COLS[2], ["Attention leaves no log.", "Nothing to check, even", "in principle. NOT RECORDED."])]:
+        for i, ln in enumerate(lines):
+            d.text((col, 490 + i * 23), ln, font=f_lead if i == 2 else f_small, fill=ORANGE)
+    d.text((M, 604), "Two steps sit between a written rule and a followed one. One is recorded and unchecked. The other is not recorded at all.",
+           font=f_stmt, fill=ORANGE)
 
-    box(M + 620, gy, 420, 120, "The transcript", ["The tool_use line from step 1.", "Outside the boundary.", "A fact on disk."], GREY)
+    # --- 3 · the market --------------------------------------------------------
+    d.text((M, 654), "How the market is trying to fix what the LLM never discloses", font=f_h, fill=FG)
+    ey, eh = 702, 142
+    box(COLS[0], ey, CW, eh, "On the context window", ["Most of the effort. Better stores,", "better retrieval, automatic capture.",
+                                                       "81 of 148 reviewed systems inject", "on their own."], CYAN)
+    box(COLS[1], ey, CW, eh, "On step 1", ["5 of 97 pushing systems check", "afterwards whether the memory",
+                                           "changed behaviour. None of those", "five block anything."], ORANGE)
+    box(COLS[2], ey, CW, eh, "On step 2", ["Nothing in that index does this,", "and its own synthesis says so."], ORANGE)
+    d.text((M, 866), "The column that already works is the one most of the field keeps improving.", font=f_stmt, fill=PURPLE)
 
-    gx = M + 1100
-    d.rounded_rectangle([(gx, gy), (W - M, gy + 120)], radius=11, fill=PANEL + (255,), outline=CYAN + (255,), width=4)
-    d.text((gx + 18, gy + 12), "The gate", font=f_box, fill=CYAN)
-    tw = d.textbbox((0, 0), "k-mem", font=f_tag)[2] + 18
-    d.rounded_rectangle([(gx + 18 + d.textbbox((0, 0), "The gate", font=f_box)[2] + 12, gy + 15),
-                         (gx + 18 + d.textbbox((0, 0), "The gate", font=f_box)[2] + 12 + tw, gy + 39)], radius=6, fill=CYAN + (255,))
-    d.text((gx + 27 + d.textbbox((0, 0), "The gate", font=f_box)[2] + 12, gy + 18), "k-mem", font=f_tag, fill=NAVY)
-    yy = gy + 48
-    for piece in wrap("Refuses the write until that line is there. It asks the record, never the model.", f_small, W - M - gx - 32):
-        d.text((gx + 18, yy), piece, font=f_small, fill=MUTED); yy += 23
+    # --- 4 · the check ---------------------------------------------------------
+    d.text((M, 916), "Where k-mem puts the check", font=f_h, fill=FG)
+    ky, kh = 1022, 112
+    d.text((COLS[1] - 22, 978), "INSIDE THE MODEL  ·  k-mem changes nothing in here", font=f_small, fill=ORANGE)
+    dashed_rect(COLS[1] - 22, 1006, COLS[2] + CW + 22, 1150, ORANGE)
+    box(COLS[0], ky, CW, kh, "Context window", ["k-mem delivers here too, like", "everyone else. That alone",
+                                                "guarantees nothing."], CYAN, mine=True)
+    box(COLS[1], ky, CW, kh, "1 · Does it call Read?", ["Untouched. The record it", "leaves is what gets checked."], ORANGE, tint=(26, 20, 12))
+    box(COLS[2], ky, CW, kh, "2 · Attention, then tokens", ["Untouched, and uncheckable.", "No record to check."], ORANGE, tint=(26, 20, 12))
 
-    h_arrow(gx - 10, M + 620 + 420 + 10, gy + 60, CYAN)
-    cx = M + 588
-    for a, b in [((cx - 16, gy + 44), (cx + 16, gy + 76)), ((cx + 16, gy + 44), (cx - 16, gy + 76))]:
+    ty, th = 1206, 112
+    box(COLS[1], ty, CW, th, "The transcript", ["A file the harness writes.", "Outside the model."], GREY)
+    box(COLS[2], ty, CW, th, "The gate", ["A hook the harness runs. Outside", "the model. Refuses the write until", "that line is there."], CYAN, mine=True)
+    # step 1 is where the transcript's line comes from
+    d.line([(COLS[1] + CW // 2, 1150), (COLS[1] + CW // 2, ty - 10)], fill=ORANGE, width=3)
+    d.polygon([(COLS[1] + CW // 2, ty - 10), (COLS[1] + CW // 2 - 8, ty - 20), (COLS[1] + CW // 2 + 8, ty - 20)], fill=ORANGE)
+    d.text((COLS[1] + CW // 2 + 16, 1160), "step 1 leaves a tool_use line here", font=f_small, fill=ORANGE)
+    h_arrow(COLS[1] + CW + 10, COLS[2] - 10, ty + th // 2, CYAN)
+    d.text((668, ty + th + 12), "the gate reads this", font=f_small, fill=CYAN)
+    # and never the other way
+    rx = 1250
+    d.line([(COLS[2] + CW, ty + 60), (rx, ty + 60)], fill=RED, width=3)
+    d.line([(rx, ty + 60), (rx, 1166)], fill=RED, width=3)
+    d.polygon([(rx, 1166), (rx - 8, 1176), (rx + 8, 1176)], fill=RED)
+    for a, b in [((rx - 15, 1206), (rx + 15, 1236)), ((rx + 15, 1206), (rx - 15, 1236))]:
         d.line([a, b], fill=RED, width=4)
-    nc = "the gate never reads across this line"
-    d.text((cx - d.textbbox((0, 0), nc, font=f_small)[2] // 2, gy + 132), nc, font=f_small, fill=RED)
+    d.text((rx + 28, 1196), "the gate cannot", font=f_small, fill=RED)
+    d.text((rx + 28, 1218), "look in here", font=f_small, fill=RED)
 
-    d.text((M, H - 40), "The boundary is not a defect. It is the part that cannot be verified from outside, drawn so the check can be placed on the other side of it.",
+    d.text((M, H - 36), "The boundary is not a defect. It is the part that cannot be verified from outside, drawn so the check can be placed on the other side of it.",
            font=f_small, fill=MUTED)
     im.convert("RGB").save(ASSETS / "the-fallacy.png", optimize=True)
     return ASSETS / "the-fallacy.png"

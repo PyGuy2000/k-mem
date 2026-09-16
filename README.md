@@ -27,7 +27,7 @@ Storage is well served. A [public review index](https://zby.github.io/commonplac
 
 <div align="center">
 
-<img src="docs/assets/the-fallacy.png" alt="Four bands. The assumption: rules are written, the model reads them, the code follows. Where that breaks inside one turn: the context window is certain, then two steps sit inside a dashed boundary, the tool-call decision which is recorded and unchecked, and attention which is not recorded at all. Where the rest of the field works: mostly on the context window. Where k-mem puts the check: the gate sits outside the boundary and reads the transcript, never the model." width="1000">
+<img src="docs/assets/the-fallacy.png" alt="Four sections. What a repo of .md files suggests will happen inside the LLM: rules written, model reads them, code follows. Why that does not hold: the context window is certain, then two steps sit inside the model, the tool-call decision which is recorded and unchecked, and attention which is not recorded at all. How the market is trying to fix it: mostly on the context window. Where k-mem puts the check: it delivers to the context window like everyone else, changes nothing inside the model, and places a gate outside it that reads the transcript line step one leaves." width="1000">
 
 </div>
 
