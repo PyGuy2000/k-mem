@@ -11,9 +11,27 @@
 [![Tests](https://img.shields.io/badge/tests-165-00E1FF?style=for-the-badge&labelColor=080C16)](tests)
 [![Dependencies](https://img.shields.io/badge/runtime%20deps-none-00E1FF?style=for-the-badge&labelColor=080C16)](plugins/k-mem/lib/kmem)
 
-**[Install](#install)** · **[What you get](#what-you-get)** · **[First session](#the-first-session)** · **[Your own repo](#your-own-repo)** · **[Design notes](docs/design.md)**
+**[The problem](#the-problem)** · **[Install](#install)** · **[What you get](#what-you-get)** · **[First session](#the-first-session)** · **[Your own repo](#your-own-repo)** · **[Design notes](docs/design.md)**
 
 </div>
+
+---
+
+## The problem
+
+> Two things are true at once. Each session is a fresh model with no memory. The files are the memory. And a session can skip a file, or half-read it, and give a confident answer anyway. Nothing in the loop can tell the difference between "read it" and "said it read it". So the honest position is this: you cannot rely on me to be the check on me. The fix has to sit outside the agent, where I cannot skip it and cannot soften it.
+
+That is Claude, on 2026-09-08, asked to design the thing that would constrain it. The wording is the assistant's own and it is treated here as the specification.
+
+Storage is well served. A [public review index](https://zby.github.io/commonplace/agent-memory-systems) covers 148 agent memory systems: files, vector stores, graphs, databases. The gap sits one step later, in the loop. A transcript records that a file was mentioned. Nothing reads the file and the answer and tells you whether one informed the other. The retrieval is a claim, and the next check reads the claim.
+
+K-mem moves the check outside the agent. Three failures, each caught at the moment it happens:
+
+1. **No memory across sessions.** Every session starts empty. The durable record lives in files, and hooks deliver those files at session start and ask for them at session end.
+2. **Rules that depend on attention degrade.** A rule delivered at turn 1 is unreliable by turn 400. Each rule moves into a hook that fires at the moment of violation and refuses the action.
+3. **A fact never learned cannot be missed.** The model confirms what it suspects and cannot see a gap. A generated list of everything that exists, delivered every session, lets "there is no such thing" be contradicted by a list.
+
+A fourth rule follows from the first three: the record is not the check. A decision written in prose and never verified against the tree is a note to self. So the docs checks fail the build when the record and the tree disagree.
 
 ---
 
@@ -35,18 +53,6 @@ That also installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the tick
 *The refusal text is the hook's own output, captured from a run against `example/`.*
 
 </div>
-
----
-
-## What problem this solves
-
-A coding session with Claude has three limits. Each fails at a different moment, so each gets a different fix.
-
-1. **No memory across sessions.** Every session starts empty. Fix: the durable record lives in files, and hooks deliver those files at session start and prompt for them at session end.
-2. **Rules that depend on attention degrade.** A rule delivered at turn 1 is unreliable by turn 400. Fix: each rule moves into a hook that fires at the moment of violation and refuses the action.
-3. **A fact never learned cannot be missed.** The model confirms what it suspects and cannot see a gap. Fix: a generated list of everything that exists, delivered every session, so "there is no such thing" can be contradicted by a list.
-
-A fourth rule follows from the first three: the record is not the check. A decision written in prose and never verified against the tree is a note to self. So the docs checks fail the build when the record and the tree disagree.
 
 ---
 
@@ -167,7 +173,17 @@ A hook is only as good as the command that wires it. The tests run every hook th
 
 ## How this compares
 
-Most agent memory systems push memory into context at session start and hope it changed behavior, or wait to be asked for it. Few test whether the injected memory did anything. Almost none stop a write, a commit, or a build. K-mem does both directions: it pushes the brief and the inventory at session start, and it pulls at write time, commit time and reply time with a check that can refuse. The generated inventory is the other uncommon piece: a list that can prove a fact is absent.
+K-mem stores nothing of its own. It does no embedding, no semantic retrieval, and no learning from traces, and it ships a search backend that deliberately returns nothing. It takes markdown you already write and makes it binding on what the agent does next. It sits beside a memory store and governs the work.
+
+Measured against the [148-system review index](https://zby.github.io/commonplace/agent-memory-systems), three things separate it.
+
+**Where the authority sits.** That index scores every system on storage substrate, representational form, lineage, and behavioral authority. Roughly 3 to 5 systems enforce anything, and what they enforce is access to the memory store: Decapod validates with mandatory gates, SAGE uses signatures and a validator quorum, Cognee uses relational ACLs. K-mem governs the work instead. It refuses the edit, blocks the commit, fails the build, and writes evidence the model cannot edit.
+
+**Enumeration.** The index has no column for proving absence, and its own synthesis names enumeration guarantees as something the field has not converged on. K-mem generates the full list of every knowledge file, decision and handoff at session start, from the files themselves.
+
+**Lineage.** Everything compiles from records a human wrote. Delete the index, rebuild it, and the packets are identical. A test hands the resolver a search backend returning a perfect score and asserts nothing enters the mandatory set.
+
+One honest limit. That index is one person's review of public systems, not a census. The claim that holds is narrow: within what it covers, enforcement that blocks a build or a commit is rare, and generated absence-detection is absent.
 
 ---
 
