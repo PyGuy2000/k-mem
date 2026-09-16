@@ -300,7 +300,7 @@ def make_system() -> Path:
     x=790 between the gate and the transcript, and x=1200 down the right.
     Nothing crosses a box.
     """
-    W, H = 1560, 1060
+    W, H = 1560, 1080
     im = Image.new("RGBA", (W, H), NAVY + (255,))
     d = ImageDraw.Draw(im)
     f_title = font(SANS_BOLD, 38)
@@ -370,9 +370,9 @@ def make_system() -> Path:
     d.text((402, 128), "THE RECORD", font=f_band, fill=CYAN)
     d.text((752, 128), "EVERY SESSION BEGINS WITH", font=f_band, fill=CYAN)
     card(M, 158, 300, 136, "Decisions, notes", ["One file per decision.", "STATE.md and plans.md.", "Yours, written anyway."], GREY)
-    card(402, 158, 300, 136, "The map", [".claude/adr_map.json:", "which decisions govern", "which paths."], CYAN, mine=True)
-    card(402, 322, 300, 128, "Tickets", ["DevFlow. backlog, active,", "blocked, done. One per", "piece of outstanding work."], CYAN, mine=True)
-    card(752, 158, 320, 292, "Session start", ["The brief and the plan index.",
+    card(402, 158, 300, 126, "The map", [".claude/adr_map.json:", "which decisions govern", "which paths."], CYAN, mine=True)
+    card(402, 352, 300, 128, "Tickets", ["DevFlow. backlog, active,", "blocked, done. One per", "piece of outstanding work."], CYAN, mine=True)
+    card(752, 158, 320, 322, "Session start", ["The brief and the plan index.",
                                                "The inventory of every decision",
                                                "that exists.", "",
                                                "What is active, blocked, or",
@@ -380,52 +380,52 @@ def make_system() -> Path:
                                                "Delivered before the first",
                                                "answer, every time."], CYAN, mine=True)
 
-    path([(M + 308, 226), (394, 226)], GREY)
-    path([(M + 308, 262), (350, 262), (350, 386), (394, 386)], GREY)
-    note(M + 316, 296, "outstanding work|becomes a ticket", GREY)
-    path([(710, 226), (744, 226)], CYAN)
-    path([(710, 386), (727, 386), (727, 300), (744, 300)], CYAN)
+    path([(M + 308, 221), (394, 221)], GREY)
+    path([(M + 308, 258), (350, 258), (350, 416), (394, 416)], GREY)
+    note(368, 296, "outstanding work|becomes a ticket", GREY)
+    path([(710, 221), (744, 221)], CYAN)
+    path([(710, 416), (727, 416), (727, 320), (744, 320)], CYAN)
 
     # --- the model ------------------------------------------------------------
-    d.text((M, 520), "SAMPLED  ·  no log of attention  ·  not observable from outside", font=f_band, fill=ORANGE)
-    card(M, 552, 700, 138, "The model", ["Does it read the decision that governs this file?",
+    d.text((M, 540), "SAMPLED  ·  no log of attention  ·  not observable from outside", font=f_band, fill=ORANGE)
+    card(M, 572, 700, 138, "The model", ["Does it read the decision that governs this file?",
                                          "Does reading it change what it writes?",
                                          "A transcript shows a file was opened. It never shows it was used."],
          ORANGE, fill=(26, 20, 12), dashed=True)
     # channel y=490, clear of everything
-    path([(912, 458), (912, 490), (300, 490), (300, 544)], CYAN)
-    note(322, 496, "injected every session", CYAN)
+    path([(912, 488), (912, 510), (300, 510), (300, 564)], CYAN)
+    note(322, 516, "injected every session", CYAN)
 
-    card(812, 552, 300, 104, "The transcript", ["Every tool call,", "written by the harness."], GREY)
-    path([(760, 596), (804, 596)], GREY, dashed=True)
-    note(766, 500, "a Read call,|if it makes one", GREY)
+    card(812, 572, 300, 104, "The transcript", ["Every tool call,", "written by the harness."], GREY)
+    path([(760, 616), (804, 616)], GREY, dashed=True)
+    note(766, 520, "a Read call,|if it makes one", GREY)
 
     # --- the gate -------------------------------------------------------------
-    card(M, 744, 700, 112, "The gate", ["Is there a read of every decision governing this path,",
+    card(M, 764, 700, 112, "The gate", ["Is there a read of every decision governing this path,",
                                         "earlier in this transcript?"], CYAN, mine=True)
-    path([(160, 698), (160, 736)], ORANGE)
-    note(178, 700, "proposes a write", ORANGE)
+    path([(160, 718), (160, 756)], ORANGE)
+    note(178, 720, "proposes a write", ORANGE)
     # transcript down the x=962 channel, into the gate's right edge
-    path([(962, 664), (962, 800), (760, 800)], CYAN)
-    note(800, 700, "the recorded fact", CYAN)
+    path([(962, 684), (962, 820), (760, 820)], CYAN)
+    note(800, 720, "the recorded fact", CYAN)
 
     # --- outcomes --------------------------------------------------------------
-    oy = 890
+    oy = 910
     d.rounded_rectangle([(M, oy), (M + 330, oy + 62)], radius=11, fill=PANEL + (255,), outline=GREEN + (255,), width=3)
     d.text((M + 17, oy + 9), "allow", font=f_box, fill=GREEN)
     d.text((M + 17, oy + 37), "the edit lands, the ticket moves", font=f_small, fill=MUTED)
     d.rounded_rectangle([(422, oy), (752, oy + 62)], radius=11, fill=PANEL + (255,), outline=RED + (255,), width=3)
     d.text((439, oy + 9), "refuse", font=f_box, fill=RED)
     d.text((439, oy + 37), "and name the files to read", font=f_small, fill=MUTED)
-    path([(150, 860), (150, oy - 6)], GREEN)
-    path([(620, 860), (620, oy - 6)], RED)
+    path([(150, 880), (150, oy - 6)], GREEN)
+    path([(620, 880), (620, oy - 6)], RED)
 
     # allow closes a ticket: down, out to the right gutter, back along y=490 to the ticket
-    path([(217, oy + 62), (217, 992), (1200, 992), (1200, 490), (552, 490), (552, 458)], GREEN)
-    note(1216, 620, "the work lands,|the ticket closes", GREEN)
+    path([(217, oy + 62), (217, 1012), (1200, 1012), (1200, 510), (552, 510), (552, 488)], GREEN)
+    note(1216, 640, "the work lands,|the ticket closes", GREEN)
     # a refusal sends the session back to read: around the gate's right, along y=712
-    path([(760, oy + 31), (790, oy + 31), (790, 706), (430, 706), (430, 698)], RED, dashed=True)
-    note(448, 712, "read them, re-issue the identical edit", RED)
+    path([(760, oy + 31), (790, oy + 31), (790, 726), (430, 726), (430, 718)], RED, dashed=True)
+    note(448, 732, "read them, re-issue the identical edit", RED)
 
     d.text((M, H - 40), "Tagged boxes ship with k-mem. The decisions, the notes and the transcript exist either way.", font=f_small, fill=MUTED)
     im.convert("RGB").save(ASSETS / "the-system.png", optimize=True)
