@@ -1,4 +1,23 @@
-# KazzerLabs' K-mem
+<div align="center">
+
+<img src="docs/assets/banner.png" alt="KazzerLabs K-mem: memory and governance for Claude Code sessions" width="800">
+
+[![CI](https://img.shields.io/github/actions/workflow/status/PyGuy2000/k-mem/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=080C16&color=00E1FF)](https://github.com/PyGuy2000/k-mem/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/tag/PyGuy2000/k-mem?style=for-the-badge&label=release&labelColor=080C16&color=00E1FF)](https://github.com/PyGuy2000/k-mem/releases)
+[![License](https://img.shields.io/badge/license-MIT-FF941A?style=for-the-badge&labelColor=080C16)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-00E1FF?style=for-the-badge&labelColor=080C16&logo=python&logoColor=white)](pyproject.toml)
+
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-FF941A?style=for-the-badge&labelColor=080C16)](https://code.claude.com/docs/en/plugins)
+[![Tests](https://img.shields.io/badge/tests-165-00E1FF?style=for-the-badge&labelColor=080C16)](tests)
+[![Dependencies](https://img.shields.io/badge/runtime%20deps-none-00E1FF?style=for-the-badge&labelColor=080C16)](plugins/k-mem/lib/kmem)
+
+**[Install](#install)** · **[What you get](#what-you-get)** · **[First session](#the-first-session)** · **[Your own repo](#your-own-repo)** · **[Design notes](docs/design.md)**
+
+</div>
+
+---
+
+## Install
 
 Memory and governance for Claude Code sessions, packaged as a plugin. It installs in two commands and works in any repo that keeps its decisions in markdown.
 
@@ -9,6 +28,16 @@ claude plugin install k-mem@k-mem
 
 That also installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the ticket tracker the skills use. Both need `python3` on PATH (3.9 or newer) and `git`. DevFlow also needs the `mcp` package: `python3 -m pip install mcp`.
 
+<div align="center">
+
+<img src="docs/assets/gate-demo.png" alt="A session in the example repo: the read gate refuses an edit under a governed path, names the two decisions to read, and allows the identical edit once they are read" width="720">
+
+*The refusal text is the hook's own output, captured from a run against `example/`.*
+
+</div>
+
+---
+
 ## What problem this solves
 
 A coding session with Claude has three limits. Each fails at a different moment, so each gets a different fix.
@@ -18,6 +47,8 @@ A coding session with Claude has three limits. Each fails at a different moment,
 3. **A fact never learned cannot be missed.** The model confirms what it suspects and cannot see a gap. Fix: a generated list of everything that exists, delivered every session, so "there is no such thing" can be contradicted by a list.
 
 A fourth rule follows from the first three: the record is not the check. A decision written in prose and never verified against the tree is a note to self. So the docs checks fail the build when the record and the tree disagree.
+
+---
 
 ## What you get
 
@@ -35,6 +66,8 @@ A fourth rule follows from the first three: the record is not the check. A decis
 
 **DevFlow.** Tickets with a mandatory reason, dependencies, a verification gate that refuses `done` until the ticket's check passes on the current commit, and a status report at session start.
 
+---
+
 ## The first session
 
 The repo ships an example. Open it and try the tools before touching your own repo.
@@ -49,6 +82,8 @@ kmem audit
 `invoice.py` is governed by two decisions; the fact document and a plan row ride along as advisory records. `tax.py` is governed by a decision that was superseded and is still on the map, which the resolver reports as a collision, on purpose. `kmem audit` passes all four checks.
 
 To see the gate refuse an edit, ask Claude to change `src/billing/invoice.py` in a session opened in `example/`. The edit is refused with the two decision files named. Read them, ask again, and it goes through. Then ask for the same change through `sed -i`: refused again, with `via: bash` in the evidence.
+
+---
 
 ## Your own repo
 
@@ -66,6 +101,8 @@ That writes the seven notes files, `.claude/adr_map.json`, and the `CLAUDE.md` b
 5. Optional: `kmem install-git-hooks` adds a pre-commit hook that refuses a notes line naming future work with no ticket id on it.
 
 Decisions can also live as `## ADR-NNN` headings inside one `decisions.md`. The gate and the resolver read both layouts.
+
+---
 
 ## Configuration
 
@@ -91,6 +128,8 @@ One file: `~/.claude/plugins/data/k-mem-k-mem/config.json` (the plugin's data di
 
 To turn the gate off, create a file named `DISABLED` in the evidence directory. Every allow is then logged as `disabled`.
 
+---
+
 ## Commands
 
 | Command | What it does |
@@ -110,6 +149,8 @@ To turn the gate off, create a file named `DISABLED` in the evidence directory. 
 
 Skills the plugin adds: `/k-mem:project-memory`, `/k-mem:handoff`, `/k-mem:update-project-docs`, `/k-mem:adr`, `/k-mem:quick`. Commands: `/k-mem:idea` (collision check before planning), `/k-mem:park` (record a deferral with an unpark condition), `/k-mem:portfolio` (ticket brief), `/k-mem:on-track` (goal gauge).
 
+---
+
 ## Limits, stated
 
 The gate proves a read happened, not that it was understood. It fails open when the transcript is unreadable or the map is broken, and logs why, so a fault in the plugin never blocks all editing.
@@ -122,9 +163,13 @@ The hooks run `python3` from PATH. On Windows that name may not exist; `kmem doc
 
 A hook is only as good as the command that wires it. The tests run every hook through its launcher with the real payload shape, and the proof-of-red tests assert the refusal, because a wiring fault once turned every deny into an allow while the log kept saying "denied".
 
+---
+
 ## How this compares
 
 Most agent memory systems push memory into context at session start and hope it changed behavior, or wait to be asked for it. Few test whether the injected memory did anything. Almost none stop a write, a commit, or a build. K-mem does both directions: it pushes the brief and the inventory at session start, and it pulls at write time, commit time and reply time with a check that can refuse. The generated inventory is the other uncommon piece: a list that can prove a fact is absent.
+
+---
 
 ## Development
 
@@ -134,6 +179,8 @@ python3 scripts/release_check.py
 ```
 
 The suite runs every hook as a subprocess through its launcher. The release check fails on any private name, host, path or ticket id in the tree; CI runs it with gitleaks. `docs/design.md` records the design and the reasons.
+
+---
 
 ## License
 

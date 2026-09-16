@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest something the project should do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `docs/design.md` has a section called "What is deliberately not here" with the reasoning for each omission. If your idea is in there, the most useful request argues with the reason given.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What goes wrong today, with a concrete example.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: What the change would do, and how someone would know it worked.
+    validations:
+      required: true
