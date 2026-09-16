@@ -105,16 +105,20 @@ def scan_history(root: Path) -> list[tuple[str, int, str, str]]:
     except (OSError, subprocess.SubprocessError):
         return []
     patterns = all_patterns()
-    self_rel = Path(__file__).resolve().relative_to(root.resolve()).as_posix()
+    try:
+        # This script's own diff holds the patterns; tree mode skips it too.
+        self_rel = Path(__file__).resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        self_rel = ""  # scanning another repo: nothing of ours to skip
     hits: list[tuple[str, int, str, str]] = []
     commit = "?"
-    in_self = False  # this script's own diff holds the patterns; tree mode skips it too
+    in_self = False
     for n, line in enumerate(log.splitlines(), 1):
         if line.startswith("commit ") and len(line) >= 47:
             commit = line[7:14]
             in_self = False
         elif line.startswith("diff --git "):
-            in_self = line.endswith(f" b/{self_rel}")
+            in_self = bool(self_rel) and line.endswith(f" b/{self_rel}")
         if in_self:
             continue
         for rx, why in patterns:
