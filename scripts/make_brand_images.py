@@ -157,11 +157,12 @@ def make_gate_demo() -> Path:
 
 def make_diagram() -> Path:
     """The zone diagram. Implements docs/diagram-brief.md; argue with the brief, not here."""
-    W, H = 1500, 1080
+    W, H = 1500, 1150
     im = Image.new("RGBA", (W, H), NAVY + (255,))
     d = ImageDraw.Draw(im)
     f_title, f_zone = font(SANS_BOLD, 40), font(SANS_BOLD, 24)
     f_box, f_body, f_small = font(SANS_BOLD, 25), font(SANS, 23), font(SANS, 20)
+    f_tag = font(SANS_BOLD, 16)
     M = 60
 
     def wrap(text: str, f, limit: int) -> list[str]:
@@ -175,13 +176,25 @@ def make_diagram() -> Path:
                 line = trial
         return out + ([line] if line else [])
 
-    def block(x, y, w, h, title, lines, colour):
+    def tag(x, y):
+        """The mark that says: this ships with k-mem. Everything untagged is already in a session."""
+        w = d.textbbox((0, 0), "k-mem", font=f_tag)[2] + 20
+        d.rounded_rectangle([(x, y), (x + w, y + 26)], radius=6, fill=CYAN + (255,))
+        d.text((x + 10, y + 4), "k-mem", font=f_tag, fill=NAVY)
+        return w
+
+    def block(x, y, w, h, title, lines, colour, tagged=()):
+        """lines: (text, is_kmem). A tagged line gets the mark and the brand colour."""
         d.rounded_rectangle([(x, y), (x + w, y + h)], radius=12, fill=PANEL + (255,), outline=colour + (255,), width=3)
         d.text((x + 22, y + 18), title, font=f_box, fill=colour)
         yy = y + 56
         for ln in lines:
-            for piece in wrap(ln, f_small, w - 44):
-                d.text((x + 22, yy), piece, font=f_small, fill=MUTED)
+            mine = ln in tagged
+            for piece in wrap(ln, f_small, w - 44 - (78 if mine else 0)):
+                d.text((x + 22, yy), piece, font=f_small, fill=CYAN if mine else MUTED)
+                if mine:
+                    tag(x + 26 + d.textbbox((0, 0), piece, font=f_small)[2], yy - 2)
+                    mine = False
                 yy += 27
 
     def v_arrow(x, y1, y2, colour, dashed=False):
@@ -206,9 +219,14 @@ def make_diagram() -> Path:
     d.text((M, 140), "DETERMINISTIC   ·   runs the same way every time, and leaves a record", font=f_zone, fill=CYAN)
     d.rounded_rectangle([(M - 14, z1y - 12), (W - M + 14, z1y + z1h + 12)], radius=16, outline=CYAN + (80,), width=2)
     bw = (W - 2 * M - 2 * 26) // 3
-    block(M, z1y, bw, z1h, "Files on disk", ["Decision records, STATE.md,", ".claude/adr_map.json"], CYAN)
-    block(M + bw + 26, z1y, bw, z1h, "Hooks", ["Session start injects the brief", "and the inventory. PreToolUse", "fires on every write."], CYAN)
-    block(M + 2 * (bw + 26), z1y, bw, z1h, "The transcript", ["Every tool call the session", "made, with its input.", "Written by the harness."], CYAN)
+    block(M, z1y, bw, z1h, "Files on disk",
+          ["Decision records and STATE.md,", "which you write anyway.", ".claude/adr_map.json"],
+          CYAN, tagged={".claude/adr_map.json"})
+    block(M + bw + 26, z1y, bw, z1h, "Hooks",
+          ["The harness fires them.", "The read gate, the sweep and", "the session brief ship here."],
+          CYAN, tagged={"the session brief ship here."})
+    block(M + 2 * (bw + 26), z1y, bw, z1h, "The transcript",
+          ["Every tool call the session", "made, with its input.", "Written by the harness."], CYAN)
 
     # --- the two arrows between zone 1 and zone 2 ------------------------------
     z2y, z2h = 530, 226
@@ -247,6 +265,7 @@ def make_diagram() -> Path:
     gw = int((W - 2 * M) * 0.60)
     d.rounded_rectangle([(M, z3y), (M + gw, z3y + z3h)], radius=12, fill=PANEL + (255,), outline=CYAN + (255,), width=4)
     d.text((M + 24, z3y + 18), "The gate", font=f_box, fill=CYAN)
+    tag(M + 24 + d.textbbox((0, 0), "The gate", font=f_box)[2] + 16, z3y + 22)
     d.text((M + 24, z3y + 58), "Does the transcript hold a read of every decision that", font=f_body, fill=FG)
     d.text((M + 24, z3y + 88), "governs this path, earlier in this session?", font=f_body, fill=FG)
 
@@ -267,6 +286,12 @@ def make_diagram() -> Path:
     d.rounded_rectangle([(M + gw + 168, oy), (M + gw + 302, oy + 38)], radius=8, outline=RED + (255,), width=2)
     d.text((M + gw + 192, oy + 7), "refuse", font=f_box, fill=RED)
 
+    lx = M
+    d.text((lx, H - 96), "Tagged", font=f_small, fill=MUTED)
+    lx += d.textbbox((0, 0), "Tagged ", font=f_small)[2]
+    lx += tag(lx, H - 98) + 10
+    d.text((lx, H - 96), "ships with k-mem. Everything else is already in your session: the model, the transcript, the hook mechanism, your own notes.",
+           font=f_small, fill=MUTED)
     d.text((M, H - 48), "The gate makes no judgement about understanding. It checks whether the decision was opened before the edit was attempted.",
            font=f_small, fill=MUTED)
     im.convert("RGB").save(ASSETS / "where-retrieval-sits.png", optimize=True)

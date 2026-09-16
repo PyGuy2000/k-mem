@@ -65,6 +65,31 @@ The gate asks one question, which should appear as text:
 
 Two outcomes: **allow**, and **refuse** with the files to read named.
 
+## Marking what this project contributes
+
+Half the diagram is machinery that exists whether or not anyone installs this.
+Leaving that unmarked lets the picture read as "here is how the world works",
+which hides the contribution and overstates it at the same time.
+
+So a small cyan `k-mem` tag sits on exactly three things:
+
+| Tagged | Why |
+|---|---|
+| `.claude/adr_map.json` | the one file k-mem asks you to add |
+| the hooks that ship with it | the read gate, the sweep, the session brief |
+| the gate | the check itself |
+
+Everything else stays plain: the model, the transcript, the hook mechanism the
+harness provides, and the decision records you write anyway. The legend says so
+in one line.
+
+Placement rule: a tag closes a phrase, never splits one. A tag in the middle of
+a sentence reads as a footnote marker and breaks the line.
+
+This carries a claim worth making. K-mem is small. It adds one map file and a
+set of hooks that read artifacts already lying around. It builds no store and
+touches no model.
+
 ## What crosses each boundary
 
 Four arrows, no more:
