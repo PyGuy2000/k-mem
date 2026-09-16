@@ -21,7 +21,20 @@ else
 fi
 claude plugin install k-mem@k-mem && ok "plugin install k-mem@k-mem" || bad "plugin install k-mem@k-mem"
 claude plugin list 2>/dev/null | tee /tmp/plugins.txt
-grep -q "devflow" /tmp/plugins.txt && ok "devflow installed as a dependency" || bad "devflow installed as a dependency"
+
+# Parse the listing per plugin. An earlier version grepped the whole file for
+# "devflow" and passed on the word inside an error message saying devflow was
+# MISSING, so a failed install reported as a pass.
+status_of() { awk -v want="$1" '/^[[:space:]]*.[[:space:]]*[a-z0-9-]+@/ { inblock = index($0, want "@") > 0 } inblock && /Status:/ { print; exit }' /tmp/plugins.txt; }
+case "$(status_of k-mem)" in
+  *enabled*) ok "k-mem loaded (status enabled)" ;;
+  *) bad "k-mem loaded: $(status_of k-mem)"; grep -A2 "Error:" /tmp/plugins.txt | head -6 ;;
+esac
+case "$(status_of devflow)" in
+  *enabled*) ok "devflow installed as a dependency and loaded" ;;
+  "") bad "devflow installed as a dependency (not listed at all)" ;;
+  *) bad "devflow loaded: $(status_of devflow)" ;;
+esac
 
 ROOT="$(find "$HOME/.claude/plugins" -type f -path '*k-mem*' -name 'kmem' 2>/dev/null | head -1 | xargs -r dirname | xargs -r dirname)"
 if [ -z "$ROOT" ] && [ -n "$SRC" ]; then ROOT="$SRC/plugins/k-mem"; echo "(using the checkout's plugin dir)"; fi

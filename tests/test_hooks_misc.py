@@ -54,7 +54,19 @@ def test_hooks_json_wires_every_launcher_that_exists():
     assert any(e["matcher"] == "Bash" for e in pre)
     assert hooks["PostToolUse"][0]["matcher"] == "Bash"
     manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-    assert manifest["name"] == "k-mem" and manifest["hooks"] == "./hooks/hooks.json"
+    assert manifest["name"] == "k-mem"
+
+
+def test_manifest_does_not_declare_the_auto_discovered_hooks_file():
+    """hooks/hooks.json loads automatically; naming it again refuses the whole plugin.
+
+    The runtime says "Duplicate hooks file detected" and the plugin never
+    loads. `claude plugin validate --strict` passes the broken manifest, so
+    only a real install catches it; this test is the cheap version.
+    """
+    manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert "hooks" not in manifest, "remove the hooks key; ./hooks/hooks.json is auto-discovered"
+    assert (HOOKS / "hooks.json").is_file(), "the auto-discovered file must still exist"
 
 
 def test_every_launcher_exits_zero_on_empty_stdin(tmp_path):
