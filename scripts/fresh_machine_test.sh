@@ -22,10 +22,19 @@ fi
 claude plugin install k-mem@k-mem && ok "plugin install k-mem@k-mem" || bad "plugin install k-mem@k-mem"
 claude plugin list 2>/dev/null | tee /tmp/plugins.txt
 
-# Parse the listing per plugin. An earlier version grepped the whole file for
-# "devflow" and passed on the word inside an error message saying devflow was
-# MISSING, so a failed install reported as a pass.
-status_of() { awk -v want="$1" '/^[[:space:]]*.[[:space:]]*[a-z0-9-]+@/ { inblock = index($0, want "@") > 0 } inblock && /Status:/ { print; exit }' /tmp/plugins.txt; }
+# Each plugin's own status line. Two traps this has already fallen into:
+#   - grepping the whole listing for a name matches that name inside an error
+#     message saying it is MISSING, so a failed install reads as a pass;
+#   - matching the list glyph with "." fails under mawk, which counts bytes,
+#     while gawk on a workstation matches it fine.
+# So: a header line names a plugin and carries no colon, while Version, Scope,
+# Status and Error all do. No glyph is ever matched.
+status_of() {
+  awk -v want="$1" '
+    !/:/ && /@/ { line = $0; sub(/^[^A-Za-z0-9]*/, "", line); inblock = (index(line, want "@") == 1) }
+    inblock && /Status:/ { sub(/^[^:]*:[[:space:]]*/, ""); print; exit }
+  ' /tmp/plugins.txt
+}
 case "$(status_of k-mem)" in
   *enabled*) ok "k-mem loaded (status enabled)" ;;
   *) bad "k-mem loaded: $(status_of k-mem)"; grep -A2 "Error:" /tmp/plugins.txt | head -6 ;;
