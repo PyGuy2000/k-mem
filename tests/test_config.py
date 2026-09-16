@@ -17,6 +17,31 @@ def test_data_dir_follows_the_environment(isolated_env, monkeypatch):
     assert config_path() == isolated_env / "plugin" / "config.json"
 
 
+def test_data_dir_matches_the_directory_claude_code_creates(tmp_path, monkeypatch):
+    """Inside a session Claude Code sets CLAUDE_PLUGIN_DATA to ~/.claude/plugins/data/<plugin>-<marketplace>.
+
+    A shell has no such variable. The first release defaulted to .../data/k-mem,
+    so `kmem report` read an empty directory while the hooks wrote next door.
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.delenv("KMEM_DATA_DIR", raising=False)
+    monkeypatch.delenv("CLAUDE_PLUGIN_DATA", raising=False)
+    root = home / ".claude" / "plugins" / "data"
+    # nothing created yet: the canonical path, which the first session will create
+    assert data_dir() == root / "k-mem-k-mem"
+    # installed from a marketplace under another name: the one directory that exists wins
+    (root / "k-mem-forked").mkdir(parents=True)
+    assert data_dir() == root / "k-mem-forked"
+    # the canonical name wins over any other
+    (root / "k-mem-k-mem").mkdir()
+    assert data_dir() == root / "k-mem-k-mem"
+    # inside a session the variable wins over discovery
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(tmp_path / "from-session"))
+    assert data_dir() == tmp_path / "from-session"
+
+
 def test_defaults_when_no_file(isolated_env):
     cfg = load_config()
     assert cfg.path is None

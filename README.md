@@ -69,7 +69,7 @@ Decisions can also live as `## ADR-NNN` headings inside one `decisions.md`. The 
 
 ## Configuration
 
-One file: `~/.claude/plugins/data/k-mem/config.json` (the plugin's data directory; `KMEM_DATA_DIR` overrides it). `kmem init` creates it. `kmem doctor` prints where everything is.
+One file: `~/.claude/plugins/data/k-mem-k-mem/config.json` (the plugin's data directory, named `<plugin>-<marketplace>` by Claude Code; `KMEM_DATA_DIR` overrides it). `kmem init` creates it. `kmem doctor` prints where everything is.
 
 ```json
 {

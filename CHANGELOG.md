@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 (2026-09-16)
+
+Fixes from the first installs on a clean machine.
+
+- The plugin manifest no longer declares `hooks/hooks.json`. Claude Code loads that file on its own, and declaring it again refused the whole plugin.
+- DevFlow is listed as an https url source. A github source clones over SSH, which fails on any machine with no GitHub SSH key.
+- The name check reads the whole final reply. A long reply lands as several transcript entries and only the last was checked, so a reply that had named the decisions was blocked.
+- The CLI finds the data directory a session created, `~/.claude/plugins/data/k-mem-k-mem/`. It defaulted to `.../data/k-mem/`, so `kmem report` read an empty directory while the hooks wrote to the real one.
+- The fresh-machine script reads plugin status per plugin and byte-safely, and the Docker image no longer rewrites git URLs, so it fails the way a stranger's machine fails.
+
 ## 0.1.0 (2026-09-16)
 
 First release.

@@ -1,8 +1,13 @@
 """Per-user configuration: ``<data dir>/config.json``.
 
 The data dir is, in order: ``$KMEM_DATA_DIR``, ``$CLAUDE_PLUGIN_DATA`` (set
-by Claude Code when a plugin hook runs), else ``~/.claude/plugins/data/k-mem``.
-``$KMEM_CONFIG`` names a config file directly.
+by Claude Code when a plugin hook runs), else the directory a session
+created under ``~/.claude/plugins/data/``. Claude Code names that directory
+``<plugin>-<marketplace>``, so the canonical location is
+``~/.claude/plugins/data/k-mem-k-mem/``. Outside a session the variable is
+unset, and a CLI that guessed a different default read an empty evidence
+dir while the hooks were writing to the real one. ``$KMEM_CONFIG`` names a
+config file directly.
 
 Everything the hooks and the CLI read comes from this file or from the
 governed repo's own ``.claude/`` files. No path is hardcoded anywhere else.
@@ -38,7 +43,9 @@ from pathlib import Path
 from typing import Any
 
 DATA_DIR_VAR = "${CLAUDE_PLUGIN_DATA}"
-DEFAULT_DATA_DIR = Path.home() / ".claude" / "plugins" / "data" / "k-mem"
+PLUGIN_NAME = "k-mem"
+#: The marketplace this plugin ships in; Claude Code's data dir is <plugin>-<marketplace>.
+CANONICAL_MARKETPLACE = "k-mem"
 DEFAULT_DEVFLOW_STATE = "~/.config/devflow-mcp/devflow_state.json"
 DEFAULT_STATE_BUDGET_TOKENS = 15_000
 DEFAULT_INVENTORY_LINE_BUDGET = 800
@@ -65,12 +72,39 @@ DEFAULT_INVENTORY_SECTIONS: dict[str, list[str]] = {
 }
 
 
+def plugins_data_root() -> Path:
+    return Path.home() / ".claude" / "plugins" / "data"
+
+
+def discovered_data_dir() -> Path:
+    """The directory a session created, or the canonical one when none exists yet.
+
+    Claude Code keeps a plugin's data under ``~/.claude/plugins/data/<plugin>-<marketplace>/``
+    and tells hooks about it through ``CLAUDE_PLUGIN_DATA``. A shell has no
+    such variable, so the CLI looks for the directory itself: the canonical
+    marketplace name first, then a single ``k-mem-*`` match (the plugin
+    installed from a marketplace under another name), else the canonical
+    path, which is where the first session will create it.
+    """
+    root = plugins_data_root()
+    canonical = root / f"{PLUGIN_NAME}-{CANONICAL_MARKETPLACE}"
+    if canonical.is_dir():
+        return canonical
+    try:
+        matches = sorted(p for p in root.glob(f"{PLUGIN_NAME}-*") if p.is_dir())
+    except OSError:
+        matches = []
+    if len(matches) == 1:
+        return matches[0]
+    return canonical
+
+
 def data_dir() -> Path:
     for var in ("KMEM_DATA_DIR", "CLAUDE_PLUGIN_DATA"):
         value = os.environ.get(var)
         if value:
             return Path(value).expanduser()
-    return DEFAULT_DATA_DIR
+    return discovered_data_dir()
 
 
 def config_path() -> Path:
@@ -100,9 +134,9 @@ def compact_path(path: Path, base: Path) -> str:
 class Config:
     repos: dict[str, Path] = field(default_factory=dict)
     aliases: dict[str, str] = field(default_factory=dict)
-    evidence_dir: Path = field(default_factory=lambda: DEFAULT_DATA_DIR / "evidence")
-    index_dir: Path = field(default_factory=lambda: DEFAULT_DATA_DIR / "context-index")
-    handoffs_dir: Path = field(default_factory=lambda: DEFAULT_DATA_DIR / "handoffs")
+    evidence_dir: Path = field(default_factory=lambda: data_dir() / "evidence")
+    index_dir: Path = field(default_factory=lambda: data_dir() / "context-index")
+    handoffs_dir: Path = field(default_factory=lambda: data_dir() / "handoffs")
     devflow_state: Path = field(default_factory=lambda: Path(DEFAULT_DEVFLOW_STATE).expanduser())
     enforce: bool = False
     state_budget_tokens: int = DEFAULT_STATE_BUDGET_TOKENS
