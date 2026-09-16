@@ -25,7 +25,13 @@ That is Claude, on 2026-09-08, asked to design the thing that would constrain it
 
 Storage is well served. A [public review index](https://zby.github.io/commonplace/agent-memory-systems) covers 148 agent memory systems: files, vector stores, graphs, databases. The gap sits one step later, in the loop. A transcript records that a file was mentioned. Nothing reads the file and the answer and tells you whether one informed the other. The retrieval is a claim, and the next check reads the claim.
 
-K-mem moves the check outside the agent. Three failures, each caught at the moment it happens:
+<div align="center">
+
+<img src="docs/assets/where-retrieval-sits.png" alt="Three zones. A deterministic band holds the files, the hooks and the transcript. A sampled band holds the model, where whether it reads a decision and whether that reading changes its output cannot be observed. The gate sits below, reading the transcript and never the model, and answers allow or refuse." width="900">
+
+</div>
+
+K-mem does not make the model deterministic. It draws a boundary around the part that cannot be verified from outside, and puts the check on the other side of that boundary, where the question has a recorded answer. Three failures, each caught at the moment it happens:
 
 1. **No memory across sessions.** Every session starts empty. The durable record lives in files, and hooks deliver those files at session start and ask for them at session end.
 2. **Rules that depend on attention degrade.** A rule delivered at turn 1 is unreliable by turn 400. Each rule moves into a hook that fires at the moment of violation and refuses the action.

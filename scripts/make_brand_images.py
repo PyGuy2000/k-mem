@@ -155,9 +155,127 @@ def make_gate_demo() -> Path:
     return ASSETS / "gate-demo.png"
 
 
+def make_diagram() -> Path:
+    """The zone diagram. Implements docs/diagram-brief.md; argue with the brief, not here."""
+    W, H = 1500, 1080
+    im = Image.new("RGBA", (W, H), NAVY + (255,))
+    d = ImageDraw.Draw(im)
+    f_title, f_zone = font(SANS_BOLD, 40), font(SANS_BOLD, 24)
+    f_box, f_body, f_small = font(SANS_BOLD, 25), font(SANS, 23), font(SANS, 20)
+    M = 60
+
+    def wrap(text: str, f, limit: int) -> list[str]:
+        out, line = [], ""
+        for word in text.split():
+            trial = (line + " " + word).strip()
+            if d.textbbox((0, 0), trial, font=f)[2] > limit and line:
+                out.append(line)
+                line = word
+            else:
+                line = trial
+        return out + ([line] if line else [])
+
+    def block(x, y, w, h, title, lines, colour):
+        d.rounded_rectangle([(x, y), (x + w, y + h)], radius=12, fill=PANEL + (255,), outline=colour + (255,), width=3)
+        d.text((x + 22, y + 18), title, font=f_box, fill=colour)
+        yy = y + 56
+        for ln in lines:
+            for piece in wrap(ln, f_small, w - 44):
+                d.text((x + 22, yy), piece, font=f_small, fill=MUTED)
+                yy += 27
+
+    def v_arrow(x, y1, y2, colour, dashed=False):
+        step = 16 if y2 > y1 else -16
+        if dashed:
+            y = y1
+            while (y < y2 - 8) if y2 > y1 else (y > y2 + 8):
+                d.line([(x, y), (x, y + step * 0.55)], fill=colour, width=3)
+                y += step
+        else:
+            d.line([(x, y1), (x, y2)], fill=colour, width=3)
+        s = 10 if y2 > y1 else -10
+        d.polygon([(x, y2), (x - 8, y2 - s), (x + 8, y2 - s)], fill=colour)
+
+    # --- header ---------------------------------------------------------------
+    d.text((M, 30), "Where the unpredictable part sits", font=f_title, fill=FG)
+    d.text((M, 84), "A session's use of a decision is sampled. The record of a tool call is a fact. The gate checks the fact.",
+           font=f_body, fill=MUTED)
+
+    # --- zone 1: deterministic -------------------------------------------------
+    z1y, z1h = 178, 178
+    d.text((M, 140), "DETERMINISTIC   ·   runs the same way every time, and leaves a record", font=f_zone, fill=CYAN)
+    d.rounded_rectangle([(M - 14, z1y - 12), (W - M + 14, z1y + z1h + 12)], radius=16, outline=CYAN + (80,), width=2)
+    bw = (W - 2 * M - 2 * 26) // 3
+    block(M, z1y, bw, z1h, "Files on disk", ["Decision records, STATE.md,", ".claude/adr_map.json"], CYAN)
+    block(M + bw + 26, z1y, bw, z1h, "Hooks", ["Session start injects the brief", "and the inventory. PreToolUse", "fires on every write."], CYAN)
+    block(M + 2 * (bw + 26), z1y, bw, z1h, "The transcript", ["Every tool call the session", "made, with its input.", "Written by the harness."], CYAN)
+
+    # --- the two arrows between zone 1 and zone 2 ------------------------------
+    z2y, z2h = 530, 226
+    down_x = M + bw // 2
+    up_x = M + 2 * (bw + 26) + bw // 2
+    v_arrow(down_x, z1y + z1h + 22, z2y - 14, CYAN)
+    d.text((down_x + 20, 412), "injected at session start, always", font=f_small, fill=CYAN)
+    v_arrow(up_x, z2y - 14, z1y + z1h + 22, MUTED, dashed=True)
+    lbl = "a Read call, if it makes one"
+    d.text((up_x - 24 - d.textbbox((0, 0), lbl, font=f_small)[2], 412), lbl, font=f_small, fill=MUTED)
+
+    # --- zone 2: sampled --------------------------------------------------------
+    # right-aligned: the "injected" arrow runs down the left and would cross a left-aligned label
+    zl = "SAMPLED   ·   no log of attention   ·   not observable from outside"
+    d.text((W - M - d.textbbox((0, 0), zl, font=f_zone)[2], 492), zl, font=f_zone, fill=ORANGE)
+    d.rounded_rectangle([(M, z2y), (W - M, z2y + z2h)], radius=12, fill=(26, 20, 12, 255))
+    for i in range(0, W - 2 * M, 24):  # dashed edge: a boundary, not a container
+        d.line([(M + i, z2y), (M + min(i + 12, W - 2 * M), z2y)], fill=ORANGE, width=3)
+        d.line([(M + i, z2y + z2h), (M + min(i + 12, W - 2 * M), z2y + z2h)], fill=ORANGE, width=3)
+    d.line([(M, z2y), (M, z2y + z2h)], fill=ORANGE, width=3)
+    d.line([(W - M, z2y), (W - M, z2y + z2h)], fill=ORANGE, width=3)
+    d.text((M + 26, z2y + 20), "The model", font=f_box, fill=ORANGE)
+    for i, q in enumerate([
+        "1.  Does it call Read on the governing decision at all?",
+        "2.  Once the text is in context, does attention land on it?",
+        "3.  Do those tokens change the ones it emits?",
+    ]):
+        d.text((M + 26, z2y + 62 + i * 34), q, font=f_body, fill=FG)
+    d.text((M + 26, z2y + 178), "A transcript shows that a file was opened. It never shows that the file was used.",
+           font=font(SANS_BOLD, 23), fill=ORANGE)
+
+    # --- zone 3: the gate -------------------------------------------------------
+    z3y, z3h = 872, 132
+    v_arrow(down_x, z2y + z2h + 22, z3y - 14, ORANGE)
+    d.text((down_x + 20, 796), "proposes a write", font=f_small, fill=ORANGE)
+    gw = int((W - 2 * M) * 0.60)
+    d.rounded_rectangle([(M, z3y), (M + gw, z3y + z3h)], radius=12, fill=PANEL + (255,), outline=CYAN + (255,), width=4)
+    d.text((M + 24, z3y + 18), "The gate", font=f_box, fill=CYAN)
+    d.text((M + 24, z3y + 58), "Does the transcript hold a read of every decision that", font=f_body, fill=FG)
+    d.text((M + 24, z3y + 88), "governs this path, earlier in this session?", font=f_body, fill=FG)
+
+    # the record reaches the gate; the model never does
+    rail = W - M + 14
+    entry = z3y + 40
+    d.line([(W - M, z1y + z1h // 2), (rail, z1y + z1h // 2)], fill=CYAN, width=3)
+    d.line([(rail, z1y + z1h // 2), (rail, entry)], fill=CYAN, width=3)
+    d.line([(rail, entry), (M + gw + 10, entry)], fill=CYAN, width=3)
+    d.polygon([(M + gw, entry), (M + gw + 11, entry - 8), (M + gw + 11, entry + 8)], fill=CYAN)
+    d.text((M + gw + 30, entry - 54), "reads the record,", font=f_small, fill=CYAN)
+    d.text((M + gw + 30, entry - 28), "never the model", font=f_small, fill=CYAN)
+
+    # outcomes, below the entry line so nothing competes with it
+    oy = z3y + 78
+    d.rounded_rectangle([(M + gw + 30, oy), (M + gw + 152, oy + 38)], radius=8, outline=GREEN + (255,), width=2)
+    d.text((M + gw + 56, oy + 7), "allow", font=f_box, fill=GREEN)
+    d.rounded_rectangle([(M + gw + 168, oy), (M + gw + 302, oy + 38)], radius=8, outline=RED + (255,), width=2)
+    d.text((M + gw + 192, oy + 7), "refuse", font=f_box, fill=RED)
+
+    d.text((M, H - 48), "The gate makes no judgement about understanding. It checks whether the decision was opened before the edit was attempted.",
+           font=f_small, fill=MUTED)
+    im.convert("RGB").save(ASSETS / "where-retrieval-sits.png", optimize=True)
+    return ASSETS / "where-retrieval-sits.png"
+
+
 def main() -> int:
     ASSETS.mkdir(parents=True, exist_ok=True)
-    for path in (make_banner(), make_social(), make_gate_demo()):
+    for path in (make_banner(), make_social(), make_gate_demo(), make_diagram()):
         size = Image.open(path).size
         print(f"{path.relative_to(ROOT)}  {size[0]}x{size[1]}  {path.stat().st_size // 1024} KB")
     return 0
