@@ -36,6 +36,20 @@ def test_private_patterns_load_from_a_file_outside_the_repo(tmp_path):
     assert r.returncode == 0 and "0 private patterns" in r.stderr
 
 
+def test_gitignored_files_are_not_scanned(tmp_path):
+    """A derived cache git never publishes must not fail the check; a tracked file still does."""
+    root = tmp_path / "repo"
+    (root / "build").mkdir(parents=True)
+    (root / ".gitignore").write_text("build/\n", encoding="utf-8")
+    (root / "build" / "index.txt").write_text("cached /ho" + "me/someone/x\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "init", "-q"], check=True, timeout=30)
+    r = subprocess.run([sys.executable, str(SCRIPT), "--root", str(root)], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout
+    (root / "shipped.md").write_text("see /ho" + "me/someone/x\n", encoding="utf-8")
+    r = subprocess.run([sys.executable, str(SCRIPT), "--root", str(root)], capture_output=True, text=True, timeout=60)
+    assert r.returncode == 1 and "shipped.md:1: home path" in r.stdout
+
+
 def test_four_digit_ticket_ids_are_not_flagged(tmp_path):
     (tmp_path / "a.md").write_text("T-1042 is fine; KazzerLabs is the display name\n", encoding="utf-8")
     r = subprocess.run([sys.executable, str(SCRIPT), "--root", str(tmp_path)], capture_output=True, text=True, timeout=60)

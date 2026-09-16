@@ -57,9 +57,37 @@ def all_patterns() -> list[tuple[re.Pattern[str], str]]:
     return PATTERNS + load_private_patterns()
 
 
+def publishable_files(root: Path) -> list[Path] | None:
+    """What a push would publish: tracked plus untracked-not-ignored.
+
+    Scanning the whole working tree flags derived caches that git never
+    publishes (a code index, a build directory). Returns None outside a git
+    checkout, and the caller walks the tree instead.
+    """
+    import subprocess
+
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode != 0:
+        return None
+    return [root / line for line in r.stdout.splitlines() if line.strip()]
+
+
 def iter_files(root: Path, paths: list[str]) -> list[Path]:
+    known = publishable_files(root)
+    if known is not None:
+        out = [p for p in known if p.is_file() and p.suffix.lower() not in BINARY_SUFFIXES]
+        if paths:
+            wanted = [(root / p).resolve() for p in paths]
+            out = [p for p in out if any(p.resolve() == w or w in p.resolve().parents for w in wanted)]
+        return sorted(out)
     starts = [root / p for p in paths] if paths else [root]
-    out: list[Path] = []
+    out = []
     for start in starts:
         if start.is_file():
             out.append(start)
