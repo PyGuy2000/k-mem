@@ -1,9 +1,9 @@
 # Diagram brief: where the unpredictable part sits
 
-A brief for one diagram, precise enough to hand to a designer or an image
-tool. `scripts/make_brand_images.py` builds a working version as
-`docs/assets/where-retrieval-sits.png`; this file is the specification it
-implements, and the place to argue with it.
+A brief for the two diagrams in the README, precise enough to hand to a
+designer or an image tool. `scripts/make_brand_images.py` builds working
+versions as `docs/assets/the-fallacy.png` and `docs/assets/the-system.png`;
+this file is the specification they implement, and the place to argue with it.
 
 ## The claim the diagram must make
 
@@ -39,11 +39,25 @@ Label the band: *runs the same way every time, and leaves a record.*
 This is the carved-out region. It should look different: dashed border, warm
 colour, no hard edges.
 
-Three questions sit inside it, and none can be answered from outside:
+Locate the steps inside one turn, in order, so the reader sees where in the
+loop this happens:
 
-1. Does the model call `Read` on the decision at all?
-2. Once the text is in the context window, does attention land on it?
-3. Do those tokens change the ones it emits?
+```
+context window  ->  1. does it call Read?  ->  2. attention, then tokens  ->  the edit
+```
+
+The boundary encloses steps 1 and 2 only. The context window sits outside it
+on the left, because a hook put the file there and that is certain. The edit
+sits outside it on the right, because it arrives either way.
+
+Each step carries its record status, and they differ:
+
+| Step | Record |
+|---|---|
+| 1. the tool-call decision | a `tool_use` line lands in the transcript. Nothing reads it. **Recorded, unchecked.** |
+| 2. attention, then tokens | attention leaves no log. Nothing to check, even in principle. **Not recorded.** |
+
+That difference is why one closes and the other does not.
 
 Label the band: *sampled. No log of attention.*
 
@@ -56,7 +70,12 @@ The line that does the work, placed inside the zone:
 
 Draw the gate **outside** Zone 2, reading from Zone 1. This placement is the
 entire point, so make the arrow unmistakable: it goes to the transcript, and
-never into the model.
+never into the model. Mark the line it does not cross.
+
+An earlier version stated the two unverifiable steps as text and drew no
+boundary and no gate. It described the problem and never showed the answer.
+Both placements have to be in the picture: the boundary around the two steps,
+and the check on the far side of it.
 
 The gate asks one question, which should appear as text:
 

@@ -27,7 +27,7 @@ Storage is well served. A [public review index](https://zby.github.io/commonplac
 
 <div align="center">
 
-<img src="docs/assets/the-fallacy.png" alt="Three bands. The assumption: rules are written, the model reads them, the code follows. What the loop confirms: the file reaching context is certain, the model is not, and two questions stay open. Where the rest of the field works: most effort goes into getting rules in, almost none into confirming they were read or applied. What k-mem changes: the first question closes, the second stays open." width="900">
+<img src="docs/assets/the-fallacy.png" alt="Four bands. The assumption: rules are written, the model reads them, the code follows. Where that breaks inside one turn: the context window is certain, then two steps sit inside a dashed boundary, the tool-call decision which is recorded and unchecked, and attention which is not recorded at all. Where the rest of the field works: mostly on the context window. Where k-mem puts the check: the gate sits outside the boundary and reads the transcript, never the model." width="1000">
 
 </div>
 
