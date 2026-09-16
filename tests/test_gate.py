@@ -163,6 +163,39 @@ def test_name_check_passes_when_reply_names_the_adr(tmp_path):
     assert _evidence(tmp_path / "ev", "s-name-green")[-1]["status"] == "named"
 
 
+def _split_reply_transcript(tmp_path: Path, root: Path, parts: list[str], narration_before_tool: str = "") -> Path:
+    """A turn whose final reply arrives as several assistant entries, with an optional text block before the edit."""
+    t = tmp_path / f"session-{len(list(tmp_path.glob('session-*.jsonl')))}.jsonl"
+    lines = [json.dumps({"type": "user", "message": {"role": "user", "content": "rename it"}})]
+    if narration_before_tool:
+        lines.append(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": narration_before_tool}]}}))
+    edit = {"type": "tool_use", "id": "tu1", "name": "Edit", "input": {"file_path": str(root / GOVERNED), "old_string": "a", "new_string": "b"}}
+    lines.append(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [edit]}}))
+    lines.append(json.dumps({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "tu1", "content": "ok"}]}}))
+    for p in parts:
+        lines.append(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": p}]}}))
+    t.write_text("\n".join(lines) + "\n")
+    return t
+
+
+def test_name_check_reads_the_whole_final_reply_not_just_its_last_entry(tmp_path):
+    """Live finding: a reply that named both decisions two paragraphs earlier was blocked
+    because only the last transcript entry was checked."""
+    root = _fake_repo(tmp_path)
+    t = _split_reply_transcript(tmp_path, root, ["Done. I read ADR-102 first; it governs this file.", "No other callers needed updating."])
+    r = _run("name_check.py", {"session_id": "s-split", "transcript_path": str(t)}, tmp_path / "ev")
+    assert r.returncode == 0, r.stderr
+    assert _evidence(tmp_path / "ev", "s-split")[-1]["status"] == "named"
+
+
+def test_name_check_ignores_narration_before_the_edit(tmp_path):
+    """Naming the decision while reading it, then leaving it out of the reply, is still unnamed."""
+    root = _fake_repo(tmp_path)
+    t = _split_reply_transcript(tmp_path, root, ["Done. Renamed the constant."], narration_before_tool="Reading ADR-102 now.")
+    r = _run("name_check.py", {"session_id": "s-narr", "transcript_path": str(t)}, tmp_path / "ev")
+    assert r.returncode == 2 and "ADR-102" in r.stderr
+
+
 def test_name_check_accepts_alias_prefix():
     assert missing_names("read app-102 and ADR-126", {102, 126}, ["app"]) == []
     assert missing_names("read app-102", {102, 126}, ["app"]) == [126]

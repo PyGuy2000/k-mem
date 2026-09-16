@@ -72,19 +72,38 @@ def edited_files(msgs: list[dict]) -> list[str]:
     return out
 
 
-def last_assistant_text(msgs: list[dict]) -> str:
-    text = ""
-    for d in msgs:
+def _has_tool_traffic(d: dict) -> bool:
+    content = (d.get("message") or {}).get("content")
+    return isinstance(content, list) and any(
+        isinstance(b, dict) and b.get("type") in ("tool_use", "tool_result") for b in content
+    )
+
+
+def final_reply_text(msgs: list[dict]) -> str:
+    """Everything the assistant said after its last tool call this turn.
+
+    A long reply can land as several assistant entries. Checking only the
+    last one blocked a reply that had named both decisions two paragraphs
+    earlier. The trailing run after the last tool call is what the user
+    reads, and all of it counts; narration before a tool call does not.
+    """
+    last_tool = -1
+    for i, d in enumerate(msgs):
+        if _has_tool_traffic(d):
+            last_tool = i
+    parts: list[str] = []
+    for d in msgs[last_tool + 1 :]:
         if d.get("type") != "assistant":
             continue
         content = (d.get("message") or {}).get("content")
         if isinstance(content, str):
-            text = content
+            parts.append(content)
         elif isinstance(content, list):
-            parts = [b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"]
-            if parts:
-                text = "\n".join(parts)
-    return text
+            parts.extend(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+    return "\n".join(p for p in parts if p)
+
+
+last_assistant_text = final_reply_text  # the earlier name; same contract
 
 
 def missing_names(text: str, needed: set[int], aliases: list[str] | None = None) -> list[int]:
@@ -120,7 +139,7 @@ def decide(payload: dict, gate: Gate | None = None) -> tuple[int, str]:
     if not needed:
         return 0, ""
 
-    text = last_assistant_text(msgs)
+    text = final_reply_text(msgs)
     missing = missing_names(text, needed, list(gate.config.alias_map()))
     if not missing:
         gate.log_evidence(session, {"status": "named", "adrs": sorted(needed), "files": files[:8]})
