@@ -274,14 +274,19 @@ def make_fallacy() -> Path:
     h_arrow(COLS[1] + CW + 10, COLS[2] - 10, ty + th // 2, CYAN)
     d.text((668, ty + th + 12), "the gate reads this", font=f_small, fill=CYAN)
     # and never the other way
-    rx = 1250
-    d.line([(COLS[2] + CW, ty + 60), (rx, ty + 60)], fill=RED, width=3)
-    d.line([(rx, ty + 60), (rx, 1166)], fill=RED, width=3)
-    d.polygon([(rx, 1166), (rx - 8, 1176), (rx + 8, 1176)], fill=RED)
-    for a, b in [((rx - 15, 1206), (rx + 15, 1236)), ((rx + 15, 1206), (rx - 15, 1236))]:
+    # the arrowhead lands on the boundary, not on a step: the gate cannot read
+    # inside step 1 either, only the record step 1 leaves behind
+    rx, ry = 1250, 1078
+    edge = COLS[2] + CW + 22
+    d.line([(COLS[2] + CW, ty + 34), (rx, ty + 34)], fill=RED, width=3)
+    d.line([(rx, ty + 34), (rx, ry)], fill=RED, width=3)
+    d.line([(rx, ry), (edge + 14, ry)], fill=RED, width=3)
+    d.polygon([(edge + 2, ry), (edge + 14, ry - 8), (edge + 14, ry + 8)], fill=RED)
+    for a, b in [((rx - 42, ry - 15), (rx - 12, ry + 15)), ((rx - 12, ry - 15), (rx - 42, ry + 15))]:
         d.line([a, b], fill=RED, width=4)
-    d.text((rx + 28, 1196), "the gate cannot", font=f_small, fill=RED)
-    d.text((rx + 28, 1218), "look in here", font=f_small, fill=RED)
+    d.text((rx + 26, ry - 34), "the gate cannot", font=f_small, fill=RED)
+    d.text((rx + 26, ry - 12), "read past this", font=f_small, fill=RED)
+    d.text((rx + 26, ry + 10), "boundary", font=f_small, fill=RED)
 
     d.text((M, H - 36), "The boundary is not a defect. It is the part that cannot be verified from outside, drawn so the check can be placed on the other side of it.",
            font=f_small, fill=MUTED)
