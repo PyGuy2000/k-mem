@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# K-mem CLI shim. Finds the plugin root from its own location, so it works
+# from any cwd and from a Claude Code plugin install (${CLAUDE_PLUGIN_ROOT}).
+# Uses python3 from PATH; the library is standard library only.
+here="$(cd "$(dirname "$0")/.." && pwd)"
+PYTHONPATH="$here/lib${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m kmem "$@"

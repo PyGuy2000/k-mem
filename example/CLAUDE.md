@@ -1,0 +1,11 @@
+# Example project
+
+<!-- k-mem:start -->
+## Project memory (K-mem)
+
+Read `docs/project_notes/STATE.md` first, then `plans.md`. Read one ADR from `docs/project_notes/decisions/` when you need it, never the whole corpus. Acknowledge in one short sentence that the context is loaded.
+
+Before you explain why a subsystem is the way it is, confirm or correct a recollection of a past decision, or write code under a path listed in `.claude/adr_map.json`: read the governing ADR first and name it in your reply. A structural claim with no ADR cited is the signal this was skipped. The read gate refuses a write under a governed path until the ADR was read this session; `kmem resolve --target <path>` lists what governs a path.
+
+Decisions: one file per ADR under `docs/project_notes/decisions/`; `kmem notes adr "Title"` creates the next one and refreshes the index. Facts (ports, paths, config) go in `key_facts.md`. Bugs with their fix go in `bugs.md`. The work log is `issues.md`. Unfinished intent in the notes carries a ticket id on the same line.
+<!-- k-mem:end -->

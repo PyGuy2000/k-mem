@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: gitleaks (secret scan)
+        args: ["--config=.gitleaks.toml"]
+  - repo: local
+    hooks:
+      - id: release-check
+        name: release check (no private names in the tree)
+        entry: python3 scripts/release_check.py
+        language: system
+        pass_filenames: false

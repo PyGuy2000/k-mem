@@ -1,0 +1,30 @@
+{
+  "name": "k-mem",
+  "owner": {
+    "name": "KazzerLabs"
+  },
+  "metadata": {
+    "description": "Memory and governance for Claude Code sessions: K-mem (read-before-write gate, context resolver, tiered project notes, handoffs, docs checks) and DevFlow (the ticket tracker it uses)."
+  },
+  "plugins": [
+    {
+      "name": "k-mem",
+      "source": "./plugins/k-mem",
+      "description": "Read-before-write gate, context resolver with receipts, tiered project notes, handoffs between sessions, and docs checks that fail when the record and the tree disagree.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["memory", "governance", "adr", "context", "hooks"]
+    },
+    {
+      "name": "devflow",
+      "source": {
+        "source": "github",
+        "repo": "PyGuy2000/devflow-mcp"
+      },
+      "description": "Solo ticket tracker for AI coding agents: projects, tickets with a mandatory why, dependencies, a verification gate, an ADR index, and a status report at session start.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": ["tickets", "tracker", "mcp", "adr", "workflow"]
+    }
+  ]
+}

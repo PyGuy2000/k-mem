@@ -1,0 +1,21 @@
+{
+  "_doc": "Path -> governing ADRs. A write under a matching path is refused until the session has read every listed ADR. Numbers resolve to docs/project_notes/decisions/ADR-NNN-*.md, or to a ## ADR-NNN section of decisions.md in the single-file layout. `repo` names this repo for qualified ids; omit it in a real checkout and the git repo name is used.",
+  "repo": "example",
+  "rules": [
+    {
+      "paths": ["src/billing/invoice.py"],
+      "adrs": [1, 2],
+      "topic": "invoice rounding and the tax table"
+    },
+    {
+      "paths": ["src/billing/tax.py"],
+      "adrs": [2, 4],
+      "topic": "tax table (ADR-004 is superseded and still listed on purpose)"
+    },
+    {
+      "paths": ["docs/project_notes/STATE.md", "docs/project_notes/plans.md", "CLAUDE.md"],
+      "adrs": [3],
+      "topic": "project notes"
+    }
+  ]
+}

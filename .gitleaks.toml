@@ -1,0 +1,35 @@
+title = "K-mem gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[a-zA-Z0-9_-]{20,}'''
+keywords = ["sk-ant-"]
+
+[[rules]]
+id = "github-fine-grained-pat"
+description = "GitHub fine-grained PAT"
+regex = '''github_pat_[a-zA-Z0-9_]{20,}'''
+keywords = ["github_pat_"]
+
+[[rules]]
+id = "github-classic-pat"
+description = "GitHub classic PAT (ghp_)"
+regex = '''ghp_[a-zA-Z0-9]{30,}'''
+keywords = ["ghp_"]
+
+[allowlist]
+description = "Fixtures and docs may hold key-shaped placeholders"
+paths = [
+  '''(^|/)\.gitleaks\.toml$''',
+  '''(^|/)README\.md$''',
+  '''(^|/)tests/''',
+  '''(^|/)example/''',
+]
+regexes = [
+  '''sk-ant-(your|placeholder|example|sample|dummy)''',
+  '''your[_-]?api[_-]?key''',
+]

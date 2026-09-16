@@ -1,0 +1,15 @@
+[project]
+name = "k-mem"
+version = "0.1.0"
+description = "Memory and governance for Claude Code sessions, packaged as a plugin."
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["plugins/k-mem/lib"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"

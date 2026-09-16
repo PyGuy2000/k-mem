@@ -1,0 +1,10 @@
+{
+  "_doc": "Path -> governing ADRs. A write under a matching path is refused until the session has read every listed ADR. Numbers resolve to docs/project_notes/decisions/ADR-NNN-*.md. Globs: ** crosses directories, * and ? do not. Keep this in step with the 'Where to look' table in STATE.md. `kmem audit` and the tests fail when a number has no file.",
+  "rules": [
+    {
+      "paths": ["docs/project_notes/STATE.md", "docs/project_notes/plans.md", "CLAUDE.md"],
+      "adrs": [],
+      "topic": "project notes (add the ADR number once you have written it)"
+    }
+  ]
+}
