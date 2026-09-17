@@ -11,11 +11,12 @@ Wired by ``hooks/hooks.json`` in the plugin through thin launchers under
 
 from __future__ import annotations
 
-from . import docs_check, name_check, outbox_guard, read_gate, session_start, sweep, write_guard
+from . import command_guard, docs_check, name_check, outbox_guard, read_gate, session_start, sweep, write_guard
 
 HOOKS = {
     "read-gate": read_gate.main,
     "write-guard": write_guard.main,
+    "command-guard": command_guard.main,
     "sweep": sweep.main,
     "name-check": name_check.main,
     "session-start": session_start.main,

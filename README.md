@@ -73,6 +73,8 @@ The third command installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), 
 
 **A read-before-write gate.** `.claude/adr_map.json` maps paths to the decisions that govern them. A write under a governed path is refused until the session transcript shows those decision files were read. Reading them and re-issuing the identical edit is the only way through. The gate sees the direct write tools, the MCP filesystem tools, and Bash commands that write (`sed -i`, redirects, heredocs, `cp`, `mv`, `tee`, `git checkout`, inline Python). A sweep after every Bash command logs any governed file that changed with no read record, so what the parser cannot see still gets counted. Every decision writes one evidence line to a JSONL file the model cannot edit.
 
+**A command guard.** The read gate covers writes. A wrong conclusion makes no tool call, so nothing can refuse it. Two reading mistakes are the exception, and both are visible in a Bash command before it runs. `.claude/commands.json` declares the commands a repo pins (`python` means `.venv/bin/python`; `kmem notes index` means this repo's own generator) and the commands whose whole output is the evidence. A bare invocation of a pinned command is refused with the required form named. A declared evidence command piped into `head`, `tail`, `sed -n` or `grep -m` is refused, because a line missing from a cut listing is not evidence that the line does not exist. There is no heuristic over other commands: a repo declares which ones matter, or neither rule fires.
+
 **A context resolver.** For any path, the decisions that must be read, plus the records one explicit relation away: a contract that names the file, a plan row that covers the decision, a fact document that describes the directory. It reports collisions (a superseded decision still on the map, a parked plan) and a receipt hash. It compiles a disposable SQLite index from files the repo already keeps. Nothing in it is authored; delete the index and rebuild it and the answers do not change.
 
 **Tiered project notes.** `STATE.md` is the current-state brief under a token budget, the one mandatory read. `plans.md` is one row per plan. `decisions/` holds one file per decision, indexed by a generated `decisions.md`. `key_facts.md`, `bugs.md`, `issues.md` are on demand. `kmem init` scaffolds all of it plus a block in `CLAUDE.md`.
@@ -111,13 +113,24 @@ cd your-repo
 kmem init
 ```
 
-That writes the seven notes files, `.claude/adr_map.json`, and the `CLAUDE.md` block, and never overwrites a file that exists. Then:
+That writes the seven notes files, `.claude/adr_map.json`, an empty `.claude/commands.json`, and the `CLAUDE.md` block, and never overwrites a file that exists. Then:
 
 1. Fill in `docs/project_notes/STATE.md`: what the project is, and the "Where to look" table.
 2. Write the first decision: `kmem notes adr "Title"`. It creates the next numbered file and refreshes the index.
 3. Put the decision's number into `.claude/adr_map.json` for the paths it governs.
 4. Run `kmem audit`. It passes when every citation resolves, the index is fresh, and `STATE.md` is under budget.
-5. Optional: `kmem install-git-hooks` adds a pre-commit hook that refuses a notes line naming future work with no ticket id on it.
+5. Optional: fill in `.claude/commands.json` with the commands this repo pins and the commands whose whole output is the evidence. Empty means neither rule fires.
+6. Optional: `kmem install-git-hooks` adds a pre-commit hook that refuses a notes line naming future work with no ticket id on it.
+
+**Commit `.claude/adr_map.json` and `.claude/commands.json`.** Plenty of repos ignore `.claude/*` wholesale as local agent state. These two are not local state: they are what the gates read. Ignored, they work on the machine that wrote them and are absent from every clone, so the gate allows every edit it used to refuse and nothing says why. Add an exception:
+
+```
+.claude/*
+!.claude/adr_map.json
+!.claude/commands.json
+```
+
+`kmem init` warns when it writes a file git is already ignoring, and `kmem doctor` fails the row for either file git will not carry.
 
 Decisions can also live as `## ADR-NNN` headings inside one `decisions.md`. The gate and the resolver read both layouts.
 
@@ -136,6 +149,7 @@ One file: `~/.claude/plugins/data/k-mem-k-mem/config.json` (the plugin's data di
   "handoffs_dir": "${CLAUDE_PLUGIN_DATA}/handoffs",
   "devflow_state": "~/.config/devflow-mcp/devflow_state.json",
   "enforce": false,
+  "command_guard": true,
   "state_budget_tokens": 15000,
   "session_start": {"stale_guard": true, "inbox": true, "packet": true, "inventory": true}
 }
@@ -144,6 +158,8 @@ One file: `~/.claude/plugins/data/k-mem-k-mem/config.json` (the plugin's data di
 `repos` lists every checkout the resolver and the inventory may read. `aliases` maps a short qualifier to a repo, so `other ADR-012` in a decision resolves to that repo's decision 12. Every repo restarts numbering at 001, so a bare number always means the current repo.
 
 `enforce` switches the gate from shadow to enforce mode. In shadow mode the map decides and the resolver runs beside it, logging whether the two agree. In enforce mode the resolver's set is added to the map's (it can add a required decision, never remove one) and the refusal carries the context packet and a receipt. A resolver failure in enforce mode logs a fallback line and the map decides; the gate never opens because the resolver broke.
+
+`command_guard` turns the Bash command guard off everywhere. It only ever fires in a repo that declares `.claude/commands.json`, so leaving it on costs nothing in a repo that has not declared one.
 
 To turn the gate off, create a file named `DISABLED` in the evidence directory. Every allow is then logged as `disabled`.
 
@@ -174,9 +190,13 @@ Skills the plugin adds: `/k-mem:project-memory`, `/k-mem:handoff`, `/k-mem:updat
 
 The gate proves a read happened, not that it was understood. It fails open when the transcript is unreadable or the map is broken, and logs why, so a fault in the plugin never blocks all editing.
 
+The command guard reads the command text and the repo's declaration. It does not follow a `cd` inside the command, so a command that changes directory into a declaring repo is not seen. It cannot tell whether a truncation is being read as a complete list, which is why the repo names those commands instead.
+
 Only rules with a hook or a check are fenced. A rule that lives in `CLAUDE.md` prose still degrades with session length. The mitigation that works is shorter sessions with a handoff between them.
 
 The inventory says a decision exists. Reading it is a separate step. Ticket work logs are not enumerated; search them in DevFlow.
+
+A gate lives in files a repo commits. If `.claude/adr_map.json` or `.claude/commands.json` is ignored or uncommitted, the gate exists on one machine and nowhere else. `kmem doctor` reports the state of both.
 
 The hooks run `python3` from PATH. On Windows that name may not exist; `kmem doctor` reports it.
 

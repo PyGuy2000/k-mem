@@ -59,6 +59,12 @@ git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -q -m i
 "$KMEM" resolve --target src/billing/invoice.py | grep -q "example:ADR-001" && ok "kmem resolve" || bad "kmem resolve"
 "$KMEM" audit && ok "kmem audit" || bad "kmem audit"
 
+# Every launcher this test drives must exist. python3 exits 2 on a missing file,
+# which is the same code as a refusal, so an absent hook would read as a pass.
+for h in read_gate command_guard; do
+  [ -f "$ROOT/hooks/$h.py" ] && ok "launcher present: $h.py" || bad "launcher present: $h.py"
+done
+
 # The gate through the wired launcher, with the payload shape Claude Code sends.
 T=/tmp/session.jsonl
 echo '{"type":"user","message":{"role":"user","content":"go"}}' > "$T"
@@ -70,8 +76,16 @@ echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool
 payload | python3 "$ROOT/hooks/read_gate.py" 2>/dev/null; rc=$?
 if [ "$rc" -eq 0 ]; then ok "edit allowed after the read (exit 0)"; else bad "edit allowed after the read (exit $rc)"; fi
 echo '{"type":"user","message":{"role":"user","content":"go"}}' > "$T"
-printf '{"session_id":"fresh2","transcript_path":"%s","tool_name":"Bash","cwd":"/tmp/example","tool_input":{"command":"sed -i s/CENT/PENNY/ src/billing/invoice.py"}}' "$T" | python3 "$ROOT/hooks/read_gate.py" 2>/dev/null; rc=$?
-if [ "$rc" -eq 2 ]; then ok "sed -i on a governed file refused via bash"; else bad "sed -i on a governed file refused (exit $rc)"; fi
+printf '{"session_id":"fresh2","transcript_path":"%s","tool_name":"Bash","cwd":"/tmp/example","tool_input":{"command":"sed -i s/CENT/PENNY/ src/billing/invoice.py"}}' "$T" | python3 "$ROOT/hooks/read_gate.py" 2>/tmp/bash_deny.txt; rc=$?
+if [ "$rc" -eq 2 ] && grep -q "READ GATE" /tmp/bash_deny.txt; then ok "sed -i on a governed file refused via bash"; else bad "sed -i on a governed file refused (exit $rc)"; fi
+# The command guard, same launcher, same payload shape. example/ pins python -> python3.
+printf '{"session_id":"fresh3","cwd":"/tmp/example","tool_name":"Bash","tool_input":{"command":"python src/billing/tax.py"}}' | python3 "$ROOT/hooks/command_guard.py" 2>/tmp/cmd.txt; rc=$?
+if [ "$rc" -eq 2 ] && grep -q "COMMAND GUARD" /tmp/cmd.txt && grep -q "required: python3" /tmp/cmd.txt; then ok "bare pinned interpreter refused"; else bad "bare pinned interpreter refused (exit $rc)"; fi
+printf '{"session_id":"fresh3","cwd":"/tmp/example","tool_name":"Bash","tool_input":{"command":"kmem inventory | tail -12"}}' | python3 "$ROOT/hooks/command_guard.py" 2>/tmp/cmd2.txt; rc=$?
+if [ "$rc" -eq 2 ] && grep -q "TRUNCATED EVIDENCE" /tmp/cmd2.txt; then ok "truncated evidence command refused"; else bad "truncated evidence command refused (exit $rc)"; fi
+printf '{"session_id":"fresh3","cwd":"/tmp/example","tool_name":"Bash","tool_input":{"command":"python3 src/billing/tax.py"}}' | python3 "$ROOT/hooks/command_guard.py" 2>/dev/null; rc=$?
+if [ "$rc" -eq 0 ]; then ok "pinned form allowed"; else bad "pinned form allowed (exit $rc)"; fi
+
 "$KMEM" report | grep -q "shadow lines" && ok "kmem report" || bad "kmem report"
 
 if [ -n "$SRC" ] && [ -d "$SRC/tests" ]; then

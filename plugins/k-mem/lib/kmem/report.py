@@ -2,7 +2,7 @@
 
 Reads every ``<session>.jsonl`` under the evidence dir (``evidence_dir`` in
 the config), keeps the ``shadow`` lines and the decision lines (``read``,
-``denied``, ``fallback``, ``unevidenced``), and prints counts per
+``denied``, ``fallback``, ``unevidenced``, ``refused``), and prints counts per
 classification plus every non-MATCH line.
 
 MATCH is expected by construction when the map is the only source of
@@ -21,7 +21,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-DECISION_STATUSES = ("read", "denied", "fallback", "unevidenced")
+DECISION_STATUSES = ("read", "denied", "fallback", "unevidenced", "refused")
 
 
 def load(evidence_dir: Path, since: str | None = None, statuses: tuple[str, ...] = ("shadow",)) -> list[dict]:
@@ -63,6 +63,7 @@ def summarise(rows: list[dict], decisions: list[dict] | None = None) -> dict:
     receipts = sum(1 for d in decisions if d.get("status") in ("read", "denied") and d.get("receipt"))
     bash_gated = sum(1 for d in decisions if d.get("status") in ("read", "denied") and d.get("via") == "bash")
     unevidenced = [d for d in decisions if d.get("status") == "unevidenced"]
+    refused = [d for d in decisions if d.get("status") == "refused" and d.get("hook") == "command-guard"]
     return {
         "shadow_lines": len(rows),
         "sessions": len({d.get("session") for d in rows}),
@@ -78,6 +79,7 @@ def summarise(rows: list[dict], decisions: list[dict] | None = None) -> dict:
         "gate_decisions_with_receipt": receipts,
         "bash_commands_gated": bash_gated,
         "unevidenced": unevidenced,
+        "commands_refused": refused,
     }
 
 
@@ -103,6 +105,10 @@ def render(report: dict, evidence_dir: Path) -> str:
     out.append(f"  unevidenced changes (governed file changed with no read line): {len(report['unevidenced'])}")
     for d in report["unevidenced"]:
         out.append(f"    {d.get('ts')}  {d.get('repo')}  {d.get('file')}  adrs={d.get('adrs')}")
+    out.append(f"  commands refused (pinned tooling / truncated evidence): {len(report['commands_refused'])}")
+    for d in report["commands_refused"]:
+        why = "pinned" if d.get("pinned") else "truncated"
+        out.append(f"    {d.get('ts')}  {d.get('repo')}  {why:<9} {d.get('command')}")
     if report["fallbacks"]:
         out.append("")
         out.append("enforce-mode fallbacks (resolver failed; the map decided):")
