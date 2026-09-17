@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y git curl ca-certificates \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g @anthropic-ai/claude-code \
-    && pip install "mcp<2" pytest \
+    && pip install mcp pytest \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -d /opt/tester tester
 USER tester

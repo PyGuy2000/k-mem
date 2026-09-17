@@ -50,7 +50,7 @@ claude plugin marketplace add PyGuy2000/k-mem
 claude plugin install k-mem@k-mem
 ```
 
-That also installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the ticket tracker the skills use. Both need `python3` on PATH (3.9 or newer) and `git`. DevFlow also needs the `mcp` package, pinned below 2.0: `python3 -m pip install "mcp<2"`. The 2.0 release renamed the class DevFlow imports, so an unpinned install fails to start.
+That also installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the ticket tracker the skills use. Both need `python3` on PATH (3.9 or newer) and `git`. DevFlow also needs the `mcp` package: `python3 -m pip install mcp`. Either major version works.
 
 <div align="center">
 
