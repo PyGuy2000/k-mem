@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 (2026-09-17)
+
+The library is now pip-installable. `pip install "k-mem @ git+https://github.com/PyGuy2000/k-mem.git@v0.1.2"` installs the `kmem` package and the `kmem` console script from the same tree the plugin runs. Nothing about the plugin changes; the launchers under `plugins/k-mem/hooks/` still put `lib/` on the path themselves. This exists for a repo whose own tests or CI import the resolver, where a Claude Code plugin install is not available on the runner.
+
 ## 0.1.1 (2026-09-16)
 
 Fixes from the first installs on a clean machine.

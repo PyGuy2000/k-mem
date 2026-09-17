@@ -1,9 +1,34 @@
+# Two ways in. `claude plugin install k-mem@k-mem` gives Claude Code the hooks,
+# skills and commands; the launchers under plugins/k-mem/hooks/ put lib/ on
+# sys.path themselves. `pip install k-mem` (or a git URL) installs the same
+# library as a package plus the `kmem` console script, for a repo whose own
+# tests or CI import it: a docs invariant that compiles the record set through
+# kmem.context cannot depend on a plugin being installed on the CI runner.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "k-mem"
-version = "0.1.1"
+version = "0.1.2"
 description = "Memory and governance for Claude Code sessions, packaged as a plugin."
+readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/PyGuy2000/k-mem"
+
+[project.scripts]
+kmem = "kmem.cli:main"
+
+# `where` is the whole mapping: setuptools roots the package there, so the
+# wheel carries kmem/ at top level. Delete this block and the flat-layout
+# discovery finds tests/ and docs/ instead and the build fails.
+[tool.setuptools.packages.find]
+where = ["plugins/k-mem/lib"]
+include = ["kmem*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

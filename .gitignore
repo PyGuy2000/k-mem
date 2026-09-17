@@ -7,3 +7,7 @@ __pycache__/
 
 # Local tooling that auto-installs into the repo; not part of the package.
 .claude/skills/
+
+# setuptools output from `pip wheel` / `pip install .`
+build/
+*.egg-info/
