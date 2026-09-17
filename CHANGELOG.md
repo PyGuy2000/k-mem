@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 (2026-09-17)
+
+DevFlow is no longer a declared plugin dependency. The install is three commands instead of two, and the README says so. The reason is a machine that already runs DevFlow from its own checkout: a declared dependency cannot be disabled or uninstalled while k-mem is enabled, so that machine ended up with two DevFlow servers on one state file, one of them missing the private overlay the other carries. The fresh-machine test installs DevFlow explicitly and still checks it loaded.
+
 ## 0.1.2 (2026-09-17)
 
 The library is now pip-installable. `pip install "k-mem @ git+https://github.com/PyGuy2000/k-mem.git@v0.1.2"` installs the `kmem` package and the `kmem` console script from the same tree the plugin runs. Nothing about the plugin changes; the launchers under `plugins/k-mem/hooks/` still put `lib/` on the path themselves. This exists for a repo whose own tests or CI import the resolver, where a Claude Code plugin install is not available on the runner.

@@ -20,6 +20,7 @@ else
   claude plugin marketplace add PyGuy2000/k-mem && ok "marketplace add (github)" || bad "marketplace add (github)"
 fi
 claude plugin install k-mem@k-mem && ok "plugin install k-mem@k-mem" || bad "plugin install k-mem@k-mem"
+claude plugin install devflow@k-mem && ok "plugin install devflow@k-mem" || bad "plugin install devflow@k-mem"
 claude plugin list 2>/dev/null | tee /tmp/plugins.txt
 
 # Each plugin's own status line. Two traps this has already fallen into:
@@ -40,8 +41,8 @@ case "$(status_of k-mem)" in
   *) bad "k-mem loaded: $(status_of k-mem)"; grep -A2 "Error:" /tmp/plugins.txt | head -6 ;;
 esac
 case "$(status_of devflow)" in
-  *enabled*) ok "devflow installed as a dependency and loaded" ;;
-  "") bad "devflow installed as a dependency (not listed at all)" ;;
+  *enabled*) ok "devflow installed and loaded" ;;
+  "") bad "devflow installed (not listed at all)" ;;
   *) bad "devflow loaded: $(status_of devflow)" ;;
 esac
 

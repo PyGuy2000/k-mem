@@ -1,14 +1,11 @@
 {
   "name": "k-mem",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Memory and governance for Claude Code: a read-before-write gate, a context resolver with receipts, tiered project notes, handoffs between sessions, and docs checks that fail when the record and the tree disagree.",
   "author": {
     "name": "KazzerLabs"
   },
   "license": "MIT",
-  "dependencies": [
-    "devflow"
-  ],
   "keywords": [
     "memory",
     "governance",

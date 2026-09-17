@@ -86,6 +86,18 @@ def test_manifest_does_not_declare_the_auto_discovered_hooks_file():
     assert (HOOKS / "hooks.json").is_file(), "the auto-discovered file must still exist"
 
 
+def test_manifest_declares_no_plugin_dependencies():
+    """DevFlow is installed beside k-mem, never pulled in as a dependency.
+
+    A declared dependency cannot be disabled or uninstalled while k-mem is
+    enabled, so a machine that already runs DevFlow from its own checkout
+    ends up with two servers on one state file, one of them without that
+    install's private overlay. The README's third install line is the trade.
+    """
+    manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert "dependencies" not in manifest, manifest.get("dependencies")
+
+
 def test_every_launcher_exits_zero_on_empty_stdin(tmp_path):
     for p in sorted(HOOKS.glob("*.py")):
         r = _run(p.name, None, tmp_path / "ev")

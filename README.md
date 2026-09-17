@@ -43,14 +43,15 @@ A fourth rule follows from the first three: the record is not the check. A decis
 
 ## Install
 
-Memory and governance for Claude Code sessions, packaged as a plugin. It installs in two commands and works in any repo that keeps its decisions in markdown.
+Memory and governance for Claude Code sessions, packaged as a plugin. It installs in three commands and works in any repo that keeps its decisions in markdown.
 
 ```
 claude plugin marketplace add PyGuy2000/k-mem
 claude plugin install k-mem@k-mem
+claude plugin install devflow@k-mem
 ```
 
-That also installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the ticket tracker the skills use. Both need `python3` on PATH (3.9 or newer) and `git`. DevFlow also needs the `mcp` package: `python3 -m pip install mcp`. Either major version works.
+The third command installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), the ticket tracker the skills use. It is a separate plugin rather than a declared dependency, so a machine that already runs DevFlow from its own checkout skips that line and keeps one server. Both need `python3` on PATH (3.9 or newer) and `git`. DevFlow also needs the `mcp` package: `python3 -m pip install mcp`. Either major version works.
 
 <div align="center">
 
