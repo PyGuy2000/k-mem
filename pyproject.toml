@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "k-mem"
-version = "0.1.4"
+version = "0.1.5"
 description = "Memory and governance for Claude Code sessions, packaged as a plugin."
 readme = "README.md"
 requires-python = ">=3.9"

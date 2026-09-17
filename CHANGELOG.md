@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5 (2026-09-17)
+
+CI was red on the 0.1.4 release commit, on Python 3.13 only. The package was never affected: the packaging test built the wheel with `--no-build-isolation`, which borrows the ambient `setuptools`, and a fresh 3.13 environment no longer ships one. A real `pip install` provisions the backend from `[build-system] requires` and works on 3.13, verified in a clean venv. The test now builds the way a consumer does. No change to the library, the plugin, or any behaviour; 0.1.4 and 0.1.5 are the same code.
+
 ## 0.1.4 (2026-09-17)
 
 Two defects a first consumer found, both of which made k-mem wrong about someone else's repo.

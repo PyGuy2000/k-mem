@@ -31,10 +31,14 @@ def wheel(tmp_path_factory: pytest.TempPathFactory) -> Path:
                     ignore=shutil.ignore_patterns("__pycache__", "*.egg-info"))
     out = tmp_path_factory.mktemp("wheel")
     proc = subprocess.run(
-        [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "-q", "-w", str(out), str(src)],
+        # Build the way a consumer does: isolated, so pip provisions the backend
+        # from [build-system] requires. `--no-build-isolation` borrows the
+        # ambient setuptools, which a 3.13 venv no longer ships, so the first
+        # draft of this test failed on the runner for a reason no user can hit.
+        [sys.executable, "-m", "pip", "wheel", "--no-deps", "-q", "-w", str(out), str(src)],
         capture_output=True,
         text=True,
-        timeout=300,
+        timeout=600,
     )
     # A build failure is the finding, never a skip: skipping here is how a
     # broken package config would stay green in this suite.
