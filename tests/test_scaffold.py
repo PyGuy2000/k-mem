@@ -130,3 +130,66 @@ def test_install_git_hooks_refuses_to_clobber_a_foreign_hook(tmp_path):
     assert r.returncode == 2 and "not ours" in r.stderr
     r = kmem("install-git-hooks", "--force", cwd=root)
     assert r.returncode == 0 and "kmem install-git-hooks" in hook.read_text(encoding="utf-8")
+
+
+# --- git tracking of the governance files -----------------------------------------
+#
+# A gate that exists on one machine is the failure this plugin exists to stop.
+# Plenty of repos ignore `.claude/*` wholesale, so this is the common case.
+
+
+def test_init_warns_when_gitignore_swallows_the_governance_files(tmp_path, isolated_env):
+    """PROOF OF RED: the files are written and the gate looks installed; only git disagrees."""
+    root = _fresh_repo(tmp_path, "ignored_app")
+    (root / ".gitignore").write_text(".claude/*\n")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "ignore .claude")
+    r = kmem("init", cwd=root)
+    assert r.returncode == 0, r.stderr
+    assert (root / ".claude/adr_map.json").is_file()
+    assert "WARNING .claude/adr_map.json: IGNORED by git" in r.stdout
+    assert "WARNING .claude/commands.json: IGNORED by git" in r.stdout
+
+
+def test_init_is_quiet_when_the_files_can_be_committed(tmp_path, isolated_env):
+    """A file init just wrote is untracked by definition. Saying so every time means nothing."""
+    root = _fresh_repo(tmp_path, "clean_app")
+    r = kmem("init", cwd=root)
+    assert r.returncode == 0, r.stderr
+    assert "WARNING" not in r.stdout
+
+
+def test_doctor_fails_the_row_for_a_governance_file_git_will_not_carry(tmp_path, isolated_env):
+    root = _fresh_repo(tmp_path, "doctor_app")
+    (root / ".gitignore").write_text(".claude/*\n")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "ignore .claude")
+    kmem("init", cwd=root)
+    rows = json.loads(kmem("doctor", "--json", cwd=root).stdout)
+    by_item = {r["item"]: r for r in rows}
+    assert by_item[".claude/adr_map.json"]["ok"] is False
+    assert "IGNORED by git" in by_item[".claude/adr_map.json"]["value"]
+    # Committing it clears the row. Nothing about the file itself changed.
+    (root / ".gitignore").write_text(".claude/*\n!.claude/adr_map.json\n")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "track the map")
+    rows = json.loads(kmem("doctor", "--json", cwd=root).stdout)
+    by_item = {r["item"]: r for r in rows}
+    assert by_item[".claude/adr_map.json"]["ok"] is True
+    assert by_item[".claude/adr_map.json"]["value"] == "tracked by git"
+
+
+def test_tracking_states(tmp_path):
+    from kmem.layout import MAP_REL
+    from kmem.scaffold import tracking
+
+    plain = tmp_path / "nogit"
+    (plain / ".claude").mkdir(parents=True)
+    assert tracking(plain, MAP_REL) == "absent"
+    (plain / MAP_REL).write_text("{}")
+    assert tracking(plain, MAP_REL) == "no-git"
+    _git(plain, "init", "-q")
+    assert tracking(plain, MAP_REL) == "untracked"
+    _git(plain, "add", "-A")
+    _git(plain, "commit", "-q", "-m", "x")
+    assert tracking(plain, MAP_REL) == "tracked"

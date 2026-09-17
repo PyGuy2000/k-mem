@@ -6,6 +6,8 @@
 
 Two of those are Bash commands and a PreToolUse hook can refuse them before they run. `.claude/commands.json` declares what a repo pins (`python` -> `.venv/bin/python`, `kmem notes index` -> the repo's own generator) and which commands produce evidence that must be read whole. A bare pinned command is refused with the required form named. A declared evidence command piped into `head`, `tail`, `sed -n` or `grep -m` is refused. No declaration file, no rule; `"command_guard": false` in the config turns it off everywhere; the `DISABLED` marker allows and logs as it does for the gate. `kmem init` scaffolds an empty declaration.
 
+**The gates now say when git will not carry them.** `.claude/adr_map.json` has had this hole since 0.1.0 and `.claude/commands.json` inherited it: a repo that ignores `.claude/*` as local agent state gets governance files that work on the machine that wrote them and are absent from every clone. The gate then allows every edit it used to refuse, with nothing to show why. `kmem init` warns when it writes a file git is already ignoring, `kmem doctor` fails the row for either file git will not carry, and the README says which lines to put in `.gitignore`.
+
 There is deliberately no heuristic over other commands. Truncation is wrong only when the output is read as a complete list, which the command text does not reveal, so a repo names those commands instead. 33 tests, each refusal driving a command that would otherwise succeed.
 
 ## 0.1.5 (2026-09-17)

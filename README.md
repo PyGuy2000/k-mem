@@ -122,6 +122,16 @@ That writes the seven notes files, `.claude/adr_map.json`, an empty `.claude/com
 5. Optional: fill in `.claude/commands.json` with the commands this repo pins and the commands whose whole output is the evidence. Empty means neither rule fires.
 6. Optional: `kmem install-git-hooks` adds a pre-commit hook that refuses a notes line naming future work with no ticket id on it.
 
+**Commit `.claude/adr_map.json` and `.claude/commands.json`.** Plenty of repos ignore `.claude/*` wholesale as local agent state. These two are not local state: they are what the gates read. Ignored, they work on the machine that wrote them and are absent from every clone, so the gate allows every edit it used to refuse and nothing says why. Add an exception:
+
+```
+.claude/*
+!.claude/adr_map.json
+!.claude/commands.json
+```
+
+`kmem init` warns when it writes a file git is already ignoring, and `kmem doctor` fails the row for either file git will not carry.
+
 Decisions can also live as `## ADR-NNN` headings inside one `decisions.md`. The gate and the resolver read both layouts.
 
 ---
@@ -185,6 +195,8 @@ The command guard reads the command text and the repo's declaration. It does not
 Only rules with a hook or a check are fenced. A rule that lives in `CLAUDE.md` prose still degrades with session length. The mitigation that works is shorter sessions with a handoff between them.
 
 The inventory says a decision exists. Reading it is a separate step. Ticket work logs are not enumerated; search them in DevFlow.
+
+A gate lives in files a repo commits. If `.claude/adr_map.json` or `.claude/commands.json` is ignored or uncommitted, the gate exists on one machine and nowhere else. `kmem doctor` reports the state of both.
 
 The hooks run `python3` from PATH. On Windows that name may not exist; `kmem doctor` reports it.
 

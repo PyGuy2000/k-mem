@@ -33,10 +33,10 @@ from . import __version__, docsync, handoffs, inventory, report
 from .audit import run_audit
 from .config import Config, config_path, data_dir, load_config
 from .govmap import find_repo_root, load_map
-from .layout import MAP_REL, NOTES_DIR
+from .layout import COMMANDS_REL, MAP_REL, NOTES_DIR
 from .notes import ForeignIndex, archive_old_notes, write_index
 from .notes.new_adr import create as create_adr
-from .scaffold import TEMPLATES_DIR, install_git_hooks, scaffold
+from .scaffold import GOVERNANCE_FILES, TEMPLATES_DIR, install_git_hooks, scaffold, tracking
 
 USAGE_ERROR = 2
 
@@ -164,6 +164,18 @@ def _doctor_rows(root: Path | None) -> list[tuple[str, str, bool]]:
             rows.append(("this repo", f"{root} governed ({n} rules)", True))
         except (OSError, ValueError) as exc:
             rows.append(("this repo", f"{root}: map unreadable ({exc})", False))
+        # A governance file git will not carry exists on this machine only, and a
+        # fresh clone then has no gate at all. Many repos ignore .claude/* wholesale.
+        for rel in GOVERNANCE_FILES:
+            state = tracking(root, rel)
+            detail = {
+                "tracked": "tracked by git",
+                "absent": "absent (optional)" if rel == COMMANDS_REL else "absent",
+                "no-git": "not a git repo; nothing carries it",
+                "ignored": "IGNORED by git: this machine only; a fresh clone has no gate",
+                "untracked": "not tracked by git: this machine only; a fresh clone has no gate",
+            }[state]
+            rows.append((rel.as_posix(), detail, state in ("tracked", "absent", "no-git")))
     return rows
 
 

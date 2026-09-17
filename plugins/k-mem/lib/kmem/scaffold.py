@@ -80,6 +80,7 @@ def scaffold(root: Path, project: str, today: dt.date | None = None) -> list[str
     else:
         claude.write_text(f"# {project}\n\n" + block, encoding="utf-8")
         out.append("created CLAUDE.md")
+    out.extend(tracking_warnings(root))
     return out
 
 
@@ -105,6 +106,64 @@ def git_hooks_dir(root: Path) -> Path | None:
         return None
     p = Path(r.stdout.strip())
     return p if p.is_absolute() else (Path(root) / p)
+
+
+def tracking(root: Path, rel: Path) -> str:
+    """How git treats ``rel`` in ``root``: tracked | ignored | untracked | no-git | absent.
+
+    WHY. A governance file that git does not carry works on the machine that
+    wrote it and is gone from a fresh clone. The gate then allows every edit it
+    used to refuse, silently, which is the failure this whole plugin exists to
+    stop. Many repos ignore ``.claude/*`` wholesale, so this is the common case,
+    not the odd one.
+    """
+    import subprocess
+
+    path = Path(root) / rel
+    if not path.is_file():
+        return "absent"
+    rel_posix = Path(rel).as_posix()
+
+    def git(*args: str) -> subprocess.CompletedProcess | None:
+        try:
+            return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    probe = git("rev-parse", "--is-inside-work-tree")
+    if probe is None or probe.returncode != 0:
+        return "no-git"
+    listed = git("ls-files", "--error-unmatch", rel_posix)
+    if listed is not None and listed.returncode == 0:
+        return "tracked"
+    ignored = git("check-ignore", "-q", rel_posix)
+    if ignored is not None and ignored.returncode == 0:
+        return "ignored"
+    return "untracked"
+
+
+#: The files a governed repo must carry in git for the gates to exist anywhere else.
+GOVERNANCE_FILES = (MAP_REL, COMMANDS_REL)
+
+TRACKING_ADVICE = {
+    "ignored": "IGNORED by git: this machine only. A fresh clone has no gate. Add an exception to .gitignore and commit it.",
+    "untracked": "not tracked by git: this machine only. A fresh clone has no gate. Commit it.",
+}
+
+
+def tracking_warnings(root: Path, states: tuple[str, ...] = ("ignored",)) -> list[str]:
+    """One line per governance file git will not carry. Empty when all is well.
+
+    ``kmem init`` passes the default. A file it just wrote is untracked by
+    definition, so warning about that would fire every time and mean nothing.
+    ``ignored`` is the one the user has to fix, and nothing else will say so.
+    """
+    out = []
+    for rel in GOVERNANCE_FILES:
+        state = tracking(root, rel)
+        if state in states and state in TRACKING_ADVICE:
+            out.append(f"WARNING {rel.as_posix()}: {TRACKING_ADVICE[state]}")
+    return out
 
 
 def install_git_hooks(root: Path, force: bool = False) -> str:
