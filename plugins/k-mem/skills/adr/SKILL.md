@@ -5,19 +5,19 @@ description: Query the decisions of this repo and every configured repo. "/k-mem
 
 # ADR: decision queries
 
-One command for questions about Architecture Decision Records. Backed by the K-mem context index (`kmem resolve`, `kmem edges`, `kmem inventory`) and, when the DevFlow plugin is installed, its ADR index (`mcp__devflow__list_adrs`, `mcp__devflow__get_adr`, `mcp__devflow__refresh_adr_index`).
+One command for questions about Architecture Decision Records. Backed by the K-mem context index (`kmem resolve`, `kmem edges`, `kmem inventory`) and, when the DevFlow plugin is installed, its ADR index (DevFlow's `list_adrs`, DevFlow's `get_adr`, DevFlow's `refresh_adr_index`).
 
 ## Ground rules
 
 - **Qualify ids.** Every repo restarts at ADR-001, so a bare number names several decisions. Use `<repo>:ADR-NNN` (the id `kmem resolve` prints). If the user gives a bare number, assume the current repo and say so.
-- The indexes are **derived caches**. If the user just wrote or edited an ADR, run `kmem index` (and `mcp__devflow__refresh_adr_index` when DevFlow is present) before answering.
+- The indexes are **derived caches**. If the user just wrote or edited an ADR, run `kmem index` (and DevFlow's `refresh_adr_index` when DevFlow is present) before answering.
 - An ADR heading with no `[TAG]` is assumed accepted. "All its tickets are done" is the stronger completion signal.
 
 ## Subcommands
 
 ### open
 
-ADRs with outstanding work. With DevFlow: `mcp__devflow__list_adrs(has_ticket=true)` and keep those whose tickets are not all `done`. Without DevFlow: grep `**Ref**:` and `**Goals**:` lines in `docs/project_notes/decisions/*.md` for ticket ids and list them; say that ticket status is unknown. Summarise grouped by repo: id, short title, open tickets with status. Highlight `active` above `backlog` and `blocked`.
+ADRs with outstanding work. With DevFlow: DevFlow's `list_adrs(has_ticket=true)` and keep those whose tickets are not all `done`. Without DevFlow: grep `**Ref**:` and `**Goals**:` lines in `docs/project_notes/decisions/*.md` for ticket ids and list them; say that ticket status is unknown. Summarise grouped by repo: id, short title, open tickets with status. Highlight `active` above `backlog` and `blocked`.
 
 ### done
 
@@ -25,7 +25,7 @@ ADRs that are complete: every referenced ticket `done`, or status tag `[ACCEPTED
 
 ### links <id>
 
-`kmem resolve --target` needs a path, so for one decision run `kmem edges --json` and filter both directions on the id, then read the ADR's header block for `Depends on`, `Supersedes`, `Superseded by`, `Ref`. With DevFlow: `mcp__devflow__get_adr(uid=...)` for ticket details. Report:
+`kmem resolve --target` needs a path, so for one decision run `kmem edges --json` and filter both directions on the id, then read the ADR's header block for `Depends on`, `Supersedes`, `Superseded by`, `Ref`. With DevFlow: DevFlow's `get_adr(uid=...)` for ticket details. Report:
 
 1. Title, status, date.
 2. Each edge: type, target id, target title, and whether it resolves. Flag unresolved edges (they point at decisions that do not exist yet) and cross-repo edges explicitly.
@@ -38,7 +38,7 @@ Run `kmem audit` and `kmem edges`. Report: citations with no file, a stale index
 
 ### <anything else>
 
-Treat as a free-form question. Prefer `kmem inventory` (every ADR title across repos) to find candidates, then read the one or two decision files that match. With DevFlow, `mcp__devflow__list_adrs(project=..., status=..., has_ticket=...)` for filters.
+Treat as a free-form question. Prefer `kmem inventory` (every ADR title across repos) to find candidates, then read the one or two decision files that match. With DevFlow, DevFlow's `list_adrs(project=..., status=..., has_ticket=...)` for filters.
 
 ## Output style
 

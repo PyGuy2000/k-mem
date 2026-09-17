@@ -34,7 +34,7 @@ from .audit import run_audit
 from .config import Config, config_path, data_dir, load_config
 from .govmap import find_repo_root, load_map
 from .layout import MAP_REL, NOTES_DIR
-from .notes import archive_old_notes, write_index
+from .notes import ForeignIndex, archive_old_notes, write_index
 from .notes.new_adr import create as create_adr
 from .scaffold import TEMPLATES_DIR, install_git_hooks, scaffold
 
@@ -290,8 +290,8 @@ def cmd_notes(args: argparse.Namespace) -> int:
     notes_dir = root / NOTES_DIR
     if args.notes_cmd == "index":
         try:
-            n_rows, n_files, size = write_index(notes_dir)
-        except FileNotFoundError as exc:
+            n_rows, n_files, size = write_index(notes_dir, force=getattr(args, "force", False))
+        except (FileNotFoundError, ForeignIndex) as exc:
             raise SystemExit(str(exc)) from exc
         print(f"decisions.md: index of {n_rows} headings across {n_files} files ({size:,} bytes)")
         return 0
@@ -451,6 +451,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("notes", help="project-notes tooling")
     ns = s.add_subparsers(dest="notes_cmd", required=True)
     n = ns.add_parser("index", help="regenerate docs/project_notes/decisions.md from decisions/")
+    n.add_argument("--force", action="store_true",
+                   help="overwrite decisions.md even when another generator's marker owns it")
     n.add_argument("--root")
     n = ns.add_parser("archive", help="move closed bugs/issues sections older than the cutoff into archive/")
     n.add_argument("--root")

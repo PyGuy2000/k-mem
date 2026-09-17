@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4 (2026-09-17)
+
+Two defects a first consumer found, both of which made k-mem wrong about someone else's repo.
+
+**`kmem notes index` no longer overwrites an index another generator owns.** A repo that already generated `decisions.md` with its own script keeps a start marker with its own attribution; k-mem looked for its exact marker, missed, and rewrote both the format and the preamble above it. Each tool's freshness check then called the other's correct output stale, which reads as a staleness bug rather than a collision, and the ADR write guard's checklist sent authors straight into it. `kmem notes index` now refuses and names the generator it found, `--force` takes the file over deliberately, `kmem audit` skips its freshness check instead of failing, and the write guard says "whichever generator owns it" rather than naming one.
+
+**The skills name DevFlow's tools, not a server address.** `mcp__devflow__X` is the name a settings.json-wired server gets; a plugin-installed DevFlow is namespaced `plugin:devflow:devflow`, so 22 hard-coded mentions across 7 skills and commands were wrong for half of all installs. They now name the tool and let the model bind it. A test fails on any reintroduced prefix.
+
 ## 0.1.3 (2026-09-17)
 
 DevFlow is no longer a declared plugin dependency. The install is three commands instead of two, and the README says so. The reason is a machine that already runs DevFlow from its own checkout: a declared dependency cannot be disabled or uninstalled while k-mem is enabled, so that machine ended up with two DevFlow servers on one state file, one of them missing the private overlay the other carries. The fresh-machine test installs DevFlow explicitly and still checks it loaded.

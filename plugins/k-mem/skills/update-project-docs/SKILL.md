@@ -57,7 +57,7 @@ For each stale readme, update it to match the current code: facts only (what the
 
 ### 3. Refresh the intent index (README.md)
 
-One row per documented subsystem: a one-line *why* (from the ADR, not invented), a link to its readme, a link to its ADR, and the open tickets (`mcp__devflow__list_tickets` when DevFlow is installed). Show only open tickets; closed ones drop off naturally.
+One row per documented subsystem: a one-line *why* (from the ADR, not invented), a link to its readme, a link to its ADR, and the open tickets (DevFlow's `list_tickets` when DevFlow is installed). Show only open tickets; closed ones drop off naturally.
 
 ### 4. Reconcile with the notes and the tickets
 

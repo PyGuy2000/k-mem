@@ -10,7 +10,7 @@ Answer one question for a solo operator deep in ADR and PR volume: **are we stil
 
 2. Gather merged work since `D` (run in parallel):
    - `git log --since=<D> --oneline --merges` in this repo and in every repo a goal's "Linked work" names (paths from the K-mem config).
-   - `mcp__devflow__get_status_report` when DevFlow is installed, filtered to the configured repos.
+   - DevFlow's `get_status_report` when DevFlow is installed, filtered to the configured repos.
 
 3. Find ADRs written since `D`: grep `**Date**:` lines in `docs/project_notes/decisions/*.md` (or `decisions.md` in the single-file layout) and keep those dated after `D`. For each, check for a `**Goals**:` line.
 

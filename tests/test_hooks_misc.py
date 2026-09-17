@@ -250,3 +250,19 @@ def test_docs_check_hook_reports_budget_overrun(tmp_path, isolated_env, write_co
     assert r.returncode == 0 and "over budget" in r.stdout and "STATE.md" in r.stdout
     r2 = _run("docs_check.py", {"session_id": "s", "cwd": str(root)}, tmp_path / "ev")
     assert r2.stdout == ""  # cached per HEAD
+
+
+def test_skills_name_devflow_tools_without_a_server_prefix():
+    """A tool name is not an address.
+
+    `mcp__devflow__X` is the name a settings.json-wired server gets. A
+    plugin-installed DevFlow is namespaced `plugin:devflow:devflow`, so the
+    same tool answers to a different name and every hard-coded mention is
+    wrong for half the installs. Name the tool; let the model bind it.
+    """
+    offenders = []
+    for f in sorted(PLUGIN.rglob("*.md")):
+        for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            if "mcp__devflow__" in line:
+                offenders.append(f"{f.relative_to(PLUGIN)}:{n}")
+    assert not offenders, "hard-coded DevFlow server prefix in: " + ", ".join(offenders[:8])

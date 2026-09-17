@@ -9,9 +9,9 @@ Deliberately narrow. It reads active and parked tickets plus the plan-level regi
 ## Steps
 
 1. **Gather the collision set** (run in parallel; seconds, not a minute). DevFlow calls apply when the DevFlow plugin is installed; without it, use the plan registry and the session only, and say so.
-   - `mcp__devflow__list_tickets(project=<project resolved from cwd>, status="active")`
-   - `mcp__devflow__search_tickets(query="PARKED::")`. Search the token **with** the `::`; the bare word pulls in prose false positives. Global across projects on purpose.
-   - `mcp__devflow__search_tickets(query=<2-3 distinctive nouns from the idea>)`, one call per term. Also global: the collision that costs the most is the one that spans repos.
+   - DevFlow's `list_tickets(project=<project resolved from cwd>, status="active")`
+   - DevFlow's `search_tickets(query="PARKED::")`. Search the token **with** the `::`; the bare word pulls in prose false positives. Global across projects on purpose.
+   - DevFlow's `search_tickets(query=<2-3 distinctive nouns from the idea>)`, one call per term. Also global: the collision that costs the most is the one that spans repos.
    - **The plan registry.** If the resolved project has `docs/project_notes/plans.md`, read its last column (tickets and deliberately deferred remainders). This is the plan-level tier: coarser than tickets, cheaper than the decision corpus, and it catches a parked *remainder* that was never split into its own ticket.
    - **The resolver.** If the idea names files, `kmem resolve --target <path>` for each; a PARKED plan in its collisions is a candidate.
    - Anything parked, decided, or reversed **earlier in this session**. Read it from the conversation, not from disk. This is the case no registry can cover and the reason the command exists.
@@ -52,7 +52,7 @@ Keep it under half a screen. Verdict on the first line, always.
 
 ## Accuracy caveat
 
-This reads `active` as a proxy for "in flight". If the active column holds stalled work, the collision set is wrong in a way the output will not show. Check `mcp__devflow__get_status_report` for `stale_active` occasionally; anything stale belongs in `/k-mem:park`, not in the collision set.
+This reads `active` as a proxy for "in flight". If the active column holds stalled work, the collision set is wrong in a way the output will not show. Check DevFlow's `get_status_report` for `stale_active` occasionally; anything stale belongs in `/k-mem:park`, not in the collision set.
 
 ## When to run
 

@@ -35,7 +35,9 @@ You are writing to a decisions path. Before re-issuing the write, confirm each l
 4. NAMES: a new element name is defined in the ADR before it appears in code,
    tickets or docs.
 5. TICKETS: outstanding work gets a ticket; a fully implemented ADR gets none.
-6. INDEX: after the file lands, run `kmem notes index` so decisions.md stays fresh.
+6. INDEX: after the file lands, refresh decisions.md with whichever generator
+   owns it. `kmem notes index` in a k-mem-managed repo; if this repo had its
+   own index first, run that script instead (kmem refuses to overwrite it).
 
 This block re-runs nothing and changes nothing. Re-issue the identical write; it will pass now.
 """

@@ -33,7 +33,7 @@ Anything the receiving session must not do (for example "do not git reset; uncom
 ```
 
 3. Keep it under ~60 lines. State facts, not narration. Convert relative dates to absolute.
-4. For every ticket referenced in the note, leave a breadcrumb on the ticket itself (`mcp__devflow__log_work` when DevFlow is installed). The receiving session then gets the full history from the ticket and the note can shrink to the Ask and the Warnings.
+4. For every ticket referenced in the note, leave a breadcrumb on the ticket itself (DevFlow's `log_work` when DevFlow is installed). The receiving session then gets the full history from the ticket and the note can shrink to the Ask and the Warnings.
 5. Confirm to the user: "Handoff queued for <target>; it loads automatically when you open a session there."
 
 ## Session-close notes ("write me a prompt for the next session")

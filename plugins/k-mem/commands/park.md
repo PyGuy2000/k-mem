@@ -11,13 +11,13 @@ Capture *why* something was set down, at the moment you set it down. A backlog t
 - `/k-mem:park T-1144 "<reason>"`: park an existing ticket.
 - `/k-mem:park "<the idea>"`: park something from this session that was never ticketed. Creates the ticket first, then parks it. **This is the common case**: mid-session ideas you decide not to chase are exactly what goes missing.
 
-Resolve the DevFlow project from the current working directory. If no project matches, say so and offer `mcp__devflow__create_project` rather than guessing at an existing one.
+Resolve the DevFlow project from the current working directory. If no project matches, say so and offer DevFlow's `create_project` rather than guessing at an existing one.
 
 ## Steps
 
 1. **Resolve the target.**
-   - Ticket id given: `mcp__devflow__get_ticket(ticket_id)`. Read it fully; you need the existing `why` verbatim for step 4.
-   - No ticket id: `mcp__devflow__add_ticket(title=<short form of the idea>, why=<what it would unlock>, project=<resolved project>, priority=low, status="backlog")`. Report the new id.
+   - Ticket id given: DevFlow's `get_ticket(ticket_id)`. Read it fully; you need the existing `why` verbatim for step 4.
+   - No ticket id: DevFlow's `add_ticket(title=<short form of the idea>, why=<what it would unlock>, project=<resolved project>, priority=low, status="backlog")`. Report the new id.
 
 2. **Fill the three fields.** Ask only for what you cannot infer from the session:
    - **Why deferred**: the actual reason: waiting on something, wrong sequencing, cost, superseded, not worth it yet. "Later" is not a reason and must not be accepted.
@@ -36,9 +36,9 @@ Resolve the DevFlow project from the current working directory. If no project ma
 
    The `::` is load-bearing. `search_tickets` is case-insensitive, so a bare `PARKED` also matches ordinary prose. `PARKED::` cannot occur by accident. Write it exactly. Already parked? Update the existing block in place. Never stack a second one.
 
-5. **Log it.** `mcp__devflow__log_work(ticket_id, note=...)` with the same three fields plus session context worth resuming from: file paths, what was tried, what changed your mind. `why` is for discovery; the log is for resumption.
+5. **Log it.** DevFlow's `log_work(ticket_id, note=...)` with the same three fields plus session context worth resuming from: file paths, what was tried, what changed your mind. `why` is for discovery; the log is for resumption.
 
-6. **Fix the status.** If the ticket was `active`, `mcp__devflow__update_ticket_status(ticket_id, "backlog")`. There is no `parked` status, so the marker in `why` carries the meaning. Genuinely waiting on another ticket rather than on a judgment call? Use `blocked` plus `mcp__devflow__add_dependency` instead, and say so. Blocked and parked are different states.
+6. **Fix the status.** If the ticket was `active`, DevFlow's `update_ticket_status(ticket_id, "backlog")`. There is no `parked` status, so the marker in `why` carries the meaning. Genuinely waiting on another ticket rather than on a judgment call? Use `blocked` plus DevFlow's `add_dependency` instead, and say so. Blocked and parked are different states.
 
 7. **Confirm in one line.** Id, marker, unpark condition. No ceremony.
 

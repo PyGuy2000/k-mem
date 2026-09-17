@@ -6,11 +6,11 @@ Produce a brief for the repos K-mem knows about (`kmem doctor` lists them), usin
 
 ## Steps
 
-1. Call `mcp__devflow__get_status_report` once.
+1. Call DevFlow's `get_status_report` once.
 2. Filter every section (blocked, active, dependency chains, alerts) to the projects that correspond to the configured repos. Drop everything else.
 3. Map each surviving ticket to its repo path from the K-mem config.
 4. **Verify before you brief. The status column lies; the log and git do not.** For every surviving **active** and **blocked** ticket:
-   - `mcp__devflow__get_ticket` and read the LAST work-log entry. If it contradicts the status (status `active` but the log says the fix landed and only a grade remains), the brief says what the LOG says.
+   - DevFlow's `get_ticket` and read the LAST work-log entry. If it contradicts the status (status `active` but the log says the fix landed and only a grade remains), the brief says what the LOG says.
    - `git -C <repo> log --all --grep='T-NNNN' --oneline -1` (batch these in one Bash call). A landed commit against a still-open ticket is drift.
    - Do NOT auto-update ticket statuses from here. Report drift; fixing it is a separate, deliberate step.
 5. If a dependency chain spans repos, render it explicitly with each node's repo, status, and what unblocks what.
