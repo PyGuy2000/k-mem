@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6 (2026-09-17)
 
 **A command guard on Bash.** A session in another repo listed its own mistakes and every one was an absence claim drawn from an instrument that could not have shown otherwise: database variables unset on a machine with a database on the default port, then the tests called database-free; a 13-line registry listing piped through `tail -12`, then the missing line reported as absent; the ambient `python` and a generic command used where `CLAUDE.md` names the repo's interpreter and the repo's own index generator, which turned a green gate red twice. K-mem caught none of it, correctly for most of the list, since a spoken claim makes no tool call.
 
