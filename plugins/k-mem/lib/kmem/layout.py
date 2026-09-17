@@ -8,6 +8,9 @@ from pathlib import Path
 
 #: Path patterns and the ADR numbers a write under them requires.
 MAP_REL = Path(".claude/adr_map.json")
+#: The commands this repo pins, and the commands whose whole output is the
+#: evidence. Absent in most repos; the command guard is off without it.
+COMMANDS_REL = Path(".claude/commands.json")
 #: Self-expiring tolerances for the audit checks (optional).
 AUDIT_REL = Path(".claude/kmem_audit.json")
 

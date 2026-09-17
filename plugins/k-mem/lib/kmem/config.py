@@ -22,6 +22,7 @@ governed repo's own ``.claude/`` files. No path is hardcoded anywhere else.
       "handoffs_dir": "${CLAUDE_PLUGIN_DATA}/handoffs",
       "devflow_state": "~/.config/devflow-mcp/devflow_state.json",
       "enforce": false,
+      "command_guard": true,
       "state_budget_tokens": 15000
     }
 
@@ -31,7 +32,7 @@ and ``app-012`` in a record resolve to ``my_app:ADR-012``.
 
 Environment overrides, for tests and one-off runs: ``DEVFLOW_STATE_PATH``,
 ``KMEM_INDEX_DIR``, ``KMEM_EVIDENCE_DIR``, ``KMEM_HANDOFFS_DIR``,
-``KMEM_ENFORCE`` (``1`` or ``0``).
+``KMEM_ENFORCE`` and ``KMEM_COMMAND_GUARD`` (``1`` or ``0``).
 """
 
 from __future__ import annotations
@@ -139,6 +140,9 @@ class Config:
     handoffs_dir: Path = field(default_factory=lambda: data_dir() / "handoffs")
     devflow_state: Path = field(default_factory=lambda: Path(DEFAULT_DEVFLOW_STATE).expanduser())
     enforce: bool = False
+    #: The Bash command guard. Only ever fires in a repo that declares
+    #: ``.claude/commands.json``; this turns it off even there.
+    command_guard: bool = True
     state_budget_tokens: int = DEFAULT_STATE_BUDGET_TOKENS
     inventory_sections: dict[str, list[str]] = field(
         default_factory=lambda: {k: list(v) for k, v in DEFAULT_INVENTORY_SECTIONS.items()}
@@ -173,6 +177,7 @@ class Config:
             if data.get(key):
                 setattr(cfg, key, expand_path(str(data[key]), base))
         cfg.enforce = bool(data.get("enforce", False))
+        cfg.command_guard = bool(data.get("command_guard", True))
         cfg.state_budget_tokens = int(data.get("state_budget_tokens", DEFAULT_STATE_BUDGET_TOKENS))
         inv = data.get("inventory") or {}
         if isinstance(inv.get("sections"), dict):
@@ -193,6 +198,7 @@ class Config:
             "handoffs_dir": compact_path(self.handoffs_dir, self.base),
             "devflow_state": compact_path(self.devflow_state, self.base),
             "enforce": self.enforce,
+            "command_guard": self.command_guard,
             "state_budget_tokens": self.state_budget_tokens,
             "inventory": {"sections": self.inventory_sections, "line_budget": self.inventory_line_budget},
             "session_start": dict(self.session_start),
@@ -242,6 +248,8 @@ class Config:
             self.handoffs_dir = Path(env["KMEM_HANDOFFS_DIR"]).expanduser()
         if env.get("KMEM_ENFORCE") in ("0", "1"):
             self.enforce = env["KMEM_ENFORCE"] == "1"
+        if env.get("KMEM_COMMAND_GUARD") in ("0", "1"):
+            self.command_guard = env["KMEM_COMMAND_GUARD"] == "1"
         return self
 
 

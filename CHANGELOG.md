@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+**A command guard on Bash.** A session in another repo listed its own mistakes and every one was an absence claim drawn from an instrument that could not have shown otherwise: database variables unset on a machine with a database on the default port, then the tests called database-free; a 13-line registry listing piped through `tail -12`, then the missing line reported as absent; the ambient `python` and a generic command used where `CLAUDE.md` names the repo's interpreter and the repo's own index generator, which turned a green gate red twice. K-mem caught none of it, correctly for most of the list, since a spoken claim makes no tool call.
+
+Two of those are Bash commands and a PreToolUse hook can refuse them before they run. `.claude/commands.json` declares what a repo pins (`python` -> `.venv/bin/python`, `kmem notes index` -> the repo's own generator) and which commands produce evidence that must be read whole. A bare pinned command is refused with the required form named. A declared evidence command piped into `head`, `tail`, `sed -n` or `grep -m` is refused. No declaration file, no rule; `"command_guard": false` in the config turns it off everywhere; the `DISABLED` marker allows and logs as it does for the gate. `kmem init` scaffolds an empty declaration.
+
+There is deliberately no heuristic over other commands. Truncation is wrong only when the output is read as a complete list, which the command text does not reveal, so a repo names those commands instead. 33 tests, each refusal driving a command that would otherwise succeed.
+
 ## 0.1.5 (2026-09-17)
 
 CI was red on the 0.1.4 release commit, on Python 3.13 only. The package was never affected: the packaging test built the wheel with `--no-build-isolation`, which borrows the ambient `setuptools`, and a fresh 3.13 environment no longer ships one. A real `pip install` provisions the backend from `[build-system] requires` and works on 3.13, verified in a clean venv. The test now builds the way a consumer does. No change to the library, the plugin, or any behaviour; 0.1.4 and 0.1.5 are the same code.

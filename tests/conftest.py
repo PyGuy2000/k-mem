@@ -25,7 +25,7 @@ if str(LIB) not in sys.path:
 def isolated_env(tmp_path, monkeypatch) -> Path:
     data = tmp_path / "kmem-data"
     monkeypatch.setenv("KMEM_DATA_DIR", str(data))
-    for var in ("KMEM_CONFIG", "CLAUDE_PLUGIN_DATA", "KMEM_INDEX_DIR", "KMEM_EVIDENCE_DIR", "KMEM_HANDOFFS_DIR", "KMEM_ENFORCE"):
+    for var in ("KMEM_CONFIG", "CLAUDE_PLUGIN_DATA", "KMEM_INDEX_DIR", "KMEM_EVIDENCE_DIR", "KMEM_HANDOFFS_DIR", "KMEM_ENFORCE", "KMEM_COMMAND_GUARD"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("DEVFLOW_STATE_PATH", str(tmp_path / "no-devflow.json"))
     return data

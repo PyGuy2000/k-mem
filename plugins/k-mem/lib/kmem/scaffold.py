@@ -16,7 +16,7 @@ import stat
 from pathlib import Path
 
 from . import intent_guard
-from .layout import DECISIONS_DIR, MAP_REL, NOTES_DIR
+from .layout import COMMANDS_REL, DECISIONS_DIR, MAP_REL, NOTES_DIR
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 CLAUDE_MARKER = "<!-- k-mem:start -->"
@@ -61,6 +61,13 @@ def scaffold(root: Path, project: str, today: dt.date | None = None) -> list[str
         map_path.parent.mkdir(parents=True, exist_ok=True)
         map_path.write_text(render(template("adr_map.json"), project, today), encoding="utf-8")
         out.append(f"created {MAP_REL.as_posix()}")
+    commands_path = root / COMMANDS_REL
+    if commands_path.exists():
+        out.append(f"kept    {COMMANDS_REL.as_posix()}")
+    else:
+        commands_path.parent.mkdir(parents=True, exist_ok=True)
+        commands_path.write_text(render(template("commands.json"), project, today), encoding="utf-8")
+        out.append(f"created {COMMANDS_REL.as_posix()} (empty; the command guard fires once you fill it)")
     claude = root / "CLAUDE.md"
     block = claude_block(project, today)
     if claude.exists():

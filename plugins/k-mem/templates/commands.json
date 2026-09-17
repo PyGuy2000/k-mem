@@ -1,0 +1,13 @@
+{
+  "_doc": "The commands this repo pins, and the commands whose whole output is the evidence. Read by the command guard (PreToolUse on Bash). Empty below on purpose: a rule you have not declared never fires. 'pinned' maps a command to the form this repo requires; the key matches the basename of the first token, so 'python' catches /usr/bin/python but not python3 (declare both if you want both), and a multi-word key like 'kmem notes index' pins one subcommand. 'evidence_commands' lists commands whose full output is the evidence; one of them piped into head, tail, sed -n or grep -m is refused. Turn the whole guard off with \"command_guard\": false in the k-mem config.",
+  "_example": {
+    "pinned": {
+      "python": ".venv/bin/python",
+      "pytest": ".venv/bin/python -m pytest",
+      "kmem notes index": "python3 scripts/gen_index.py"
+    },
+    "evidence_commands": ["kmem inventory", "scripts/registry_list.py"]
+  },
+  "pinned": {},
+  "evidence_commands": []
+}

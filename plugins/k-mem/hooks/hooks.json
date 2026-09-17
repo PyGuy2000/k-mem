@@ -1,5 +1,5 @@
 {
-  "description": "K-mem: read-before-write gate (direct tools, MCP filesystem writes, Bash), decisions write guard, unevidenced-change sweep, ADR name check, session-end guard, docs check, and the session-start packet (config, stale checkout, handoff inbox, context packet, inventory).",
+  "description": "K-mem: read-before-write gate (direct tools, MCP filesystem writes, Bash), command guard (pinned tooling, truncated evidence), decisions write guard, unevidenced-change sweep, ADR name check, session-end guard, docs check, and the session-start packet (config, stale checkout, handoff inbox, context packet, inventory).",
   "hooks": {
     "PreToolUse": [
       {
@@ -20,6 +20,11 @@
       {
         "matcher": "Bash",
         "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/command_guard.py\"",
+            "timeout": 5
+          },
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/read_gate.py\"",

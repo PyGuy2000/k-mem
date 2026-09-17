@@ -500,7 +500,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_install_git_hooks)
 
     s = sub.add_parser("hook", help="run one hook with the Claude Code payload on stdin")
-    s.add_argument("name", help="read-gate | write-guard | sweep | name-check | session-start | outbox-guard | docs-check")
+    s.add_argument("name", help="read-gate | command-guard | write-guard | sweep | name-check | session-start | outbox-guard | docs-check")
     s.set_defaults(fn=cmd_hook)
     return p
 

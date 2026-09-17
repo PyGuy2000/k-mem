@@ -1,0 +1,8 @@
+{
+  "_doc": "Read by the command guard (PreToolUse on Bash). Two rules, both declared here or they never fire. 'pinned' names the form this repo requires: a bare key matches the basename of the first token, a path key matches as a path, and a multi-word key pins one subcommand. 'evidence_commands' names the commands whose whole output is the evidence; one of them piped into head, tail, sed -n or grep -m is refused, because a line missing from a cut listing is not evidence that the line does not exist.",
+  "pinned": {
+    "python": "python3",
+    "pytest": "python3 -m pytest"
+  },
+  "evidence_commands": ["kmem inventory", "kmem audit"]
+}
