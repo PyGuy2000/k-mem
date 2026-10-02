@@ -11,6 +11,7 @@ Answer one question for a solo operator deep in ADR and PR volume: **are we stil
 2. Gather merged work since `D` (run in parallel):
    - `git log --since=<D> --oneline --merges` in this repo and in every repo a goal's "Linked work" names (paths from the K-mem config).
    - DevFlow's `get_status_report` when DevFlow is installed, filtered to the configured repos.
+   - The approval queue, when the repo has `scripts/inertia_gauge.py`: run it with the repo's pinned interpreter and `--oneline`, and carry the line into Pace. It says how many items wait for a person and the median wait per kind. A kind whose queue grows for 4 readings running is the signal to review the rules that route work to that person.
 
 3. Find ADRs written since `D`: grep `**Date**:` lines in `docs/project_notes/decisions/*.md` (or `decisions.md` in the single-file layout) and keep those dated after `D`. For each, check for a `**Goals**:` line.
 
@@ -38,6 +39,7 @@ Answer one question for a solo operator deep in ADR and PR volume: **are we stil
 
 ### Pace
 - <N> PRs, <M> ADRs, <K> goals moved (ratio N:K): <one-sentence verdict>
+- Approval queue: <the `inertia_gauge.py --oneline` line, where the repo has it>
 
 ### Next gauge point
 One concrete, checkable statement for the next review (for example "G-1 goes LIVE before 20 more PRs land").
