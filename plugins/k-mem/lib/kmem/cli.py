@@ -9,7 +9,7 @@
     kmem inventory [--out FILE] [--stats]
     kmem notes index | archive [--cutoff YYYY-MM-DD] | adr "Title"
     kmem docs check [--force] | stamp FILE | stamp-all | init FILE
-    kmem handoff inbox | list | send --to NAME --subject S [--from NAME] [--body-file F] | claim NAME [--by WHO] | release NAME | archive NAME
+    kmem handoff inbox | list | send --to NAME --subject S [--ticket ID] [--from NAME] [--body-file F] | claim NAME [--by WHO] | release NAME | archive NAME
     kmem intent-guard [--self-test] [--diff-from-stdin]
     kmem install-git-hooks [--force]
     kmem hook <name>            run one hook with the payload on stdin
@@ -351,11 +351,13 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         notes = handoffs.list_pending(cfg)
         for p in notes:
             meta = handoffs.parse_note(p)
-            print(f"{p.name}  to={meta.get('to', '?')}  from={meta.get('from', '?')}  {meta.get('subject', '')}")
+            ticket = f"ticket={meta['ticket']}  " if meta.get("ticket") else ""
+            print(f"{p.name}  to={meta.get('to', '?')}  from={meta.get('from', '?')}  {ticket}{meta.get('subject', '')}")
         claimed = handoffs.list_claimed(cfg)
         for p in claimed:
             meta = handoffs.parse_note(p)
-            print(f"{p.name}  to={meta.get('to', '?')}  claimed_by={meta.get('claimed_by', '?')}  since={meta.get('claimed_at', '?')}  {meta.get('subject', '')}")
+            ticket = f"ticket={meta['ticket']}  " if meta.get("ticket") else ""
+            print(f"{p.name}  to={meta.get('to', '?')}  claimed_by={meta.get('claimed_by', '?')}  since={meta.get('claimed_at', '?')}  {ticket}{meta.get('subject', '')}")
         print(f"{len(notes)} pending, {len(claimed)} claimed in {cfg.handoffs_dir}", file=sys.stderr)
         return 0
     if args.handoff_cmd in ("claim", "release", "archive"):
@@ -377,8 +379,8 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     elif not sys.stdin.isatty():
         body = sys.stdin.read()
     sender = args.from_ or handoffs.project_names(cwd, cfg)[-1]
-    path = handoffs.send(cfg, sender, args.to, args.subject, body)
-    print(f"queued {path}")
+    path, joined = handoffs.deliver(cfg, sender, args.to, args.subject, body, ticket=args.ticket or "")
+    print(f"{'added to' if joined else 'queued'} {path}")
     print(f"The next new session in {args.to} will list it.")
     return 0
 
@@ -508,6 +510,7 @@ def build_parser() -> argparse.ArgumentParser:
     h = hs.add_parser("send", help="queue a note for another project (body from --body-file or stdin)")
     h.add_argument("--to", required=True, help="target project name")
     h.add_argument("--subject", required=True)
+    h.add_argument("--ticket", help="ticket id; a second note for the same ticket and target joins the first")
     h.add_argument("--from", dest="from_", help="sender (default: this project)")
     h.add_argument("--body-file")
     h = hs.add_parser("claim", help="take a pending note for this session and print it; refused if another session owns it")

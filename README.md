@@ -180,6 +180,7 @@ To turn the gate off, create a file named `DISABLED` in the evidence directory. 
 | `kmem docs check`, `kmem docs stamp FILE` | fact documents whose source changed since they were synced; mark one synced |
 | `kmem handoff inbox`, `kmem handoff send --to NAME --subject S` | the notes waiting for this project; queue one for another |
 | `kmem handoff claim NAME`, `kmem handoff release NAME` | take a note for this session and print it; put it back |
+| `kmem handoff send --ticket ID ...` | name a ticket; a second note for the same ticket and target joins the first |
 | `kmem install-git-hooks` | the pre-commit intent guard |
 | `kmem hook NAME` | run one hook with a payload on stdin, for testing |
 
