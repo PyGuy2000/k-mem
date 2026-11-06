@@ -18,7 +18,7 @@ A fourth finding came later and changed how limit 2 is handled. A rule or a know
 
 Durable state lives in files. Hooks deliver them at session start and ask for them at session end.
 
-At session start the plugin prints, in this order: a stale-checkout warning when the default branch carries the notes contract and this checkout does not; every pending handoff note addressed to the project; the context packet for governed files already changed on the branch; and the knowledge inventory. The project's `CLAUDE.md` block asks for `STATE.md` and `plans.md` to be read before the first substantive answer.
+At session start the plugin prints, in this order: a stale-checkout warning when the default branch carries the notes contract and this checkout does not; the subject line of every pending handoff note addressed to the project (on a new or cleared session only; a session claims a note to read it); the context packet for governed files already changed on the branch; and the knowledge inventory. The project's `CLAUDE.md` block asks for `STATE.md` and `plans.md` to be read before the first substantive answer.
 
 At session end a Stop hook fires once when three conditions hold: the transcript is over 800 KB, tracked files or project notes are modified, and no handoff was queued in the last 8 hours. It blocks the stop one time and asks the model to offer a handoff or a memory write. All three conditions must hold, so it fires only when a reminder is actionable.
 

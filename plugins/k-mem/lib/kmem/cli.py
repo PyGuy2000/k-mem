@@ -9,7 +9,7 @@
     kmem inventory [--out FILE] [--stats]
     kmem notes index | archive [--cutoff YYYY-MM-DD] | adr "Title"
     kmem docs check [--force] | stamp FILE | stamp-all | init FILE
-    kmem handoff inbox | list | send --to NAME --subject S [--from NAME] [--body-file F] | archive NAME
+    kmem handoff inbox | list | send --to NAME --subject S [--from NAME] [--body-file F] | claim NAME [--by WHO] | release NAME | archive NAME
     kmem intent-guard [--self-test] [--diff-from-stdin]
     kmem install-git-hooks [--force]
     kmem hook <name>            run one hook with the payload on stdin
@@ -352,10 +352,24 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         for p in notes:
             meta = handoffs.parse_note(p)
             print(f"{p.name}  to={meta.get('to', '?')}  from={meta.get('from', '?')}  {meta.get('subject', '')}")
-        print(f"{len(notes)} pending in {handoffs.pending_dir(cfg)}", file=sys.stderr)
+        claimed = handoffs.list_claimed(cfg)
+        for p in claimed:
+            meta = handoffs.parse_note(p)
+            print(f"{p.name}  to={meta.get('to', '?')}  claimed_by={meta.get('claimed_by', '?')}  since={meta.get('claimed_at', '?')}  {meta.get('subject', '')}")
+        print(f"{len(notes)} pending, {len(claimed)} claimed in {cfg.handoffs_dir}", file=sys.stderr)
         return 0
-    if args.handoff_cmd == "archive":
-        print(f"archived -> {handoffs.archive(cfg, args.name)}")
+    if args.handoff_cmd in ("claim", "release", "archive"):
+        try:
+            if args.handoff_cmd == "claim":
+                path = handoffs.claim(cfg, args.name, args.by or handoffs.project_names(cwd, cfg)[0])
+                sys.stdout.write(path.read_text(encoding="utf-8", errors="replace"))
+            elif args.handoff_cmd == "release":
+                print(f"released -> {handoffs.release(cfg, args.name)}")
+            else:
+                print(f"archived -> {handoffs.archive(cfg, args.name)}")
+        except (FileExistsError, FileNotFoundError) as exc:
+            print(exc, file=sys.stderr)
+            return 1
         return 0
     body = ""
     if args.body_file:
@@ -365,7 +379,7 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     sender = args.from_ or handoffs.project_names(cwd, cfg)[-1]
     path = handoffs.send(cfg, sender, args.to, args.subject, body)
     print(f"queued {path}")
-    print(f"It loads automatically when a session opens in {args.to}.")
+    print(f"The next new session in {args.to} will list it.")
     return 0
 
 
@@ -490,13 +504,18 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("handoff", help="notes between sessions")
     hs = s.add_subparsers(dest="handoff_cmd", required=True)
     hs.add_parser("inbox", help="pending notes addressed to this project")
-    hs.add_parser("list", help="every pending note")
+    hs.add_parser("list", help="every pending and claimed note")
     h = hs.add_parser("send", help="queue a note for another project (body from --body-file or stdin)")
     h.add_argument("--to", required=True, help="target project name")
     h.add_argument("--subject", required=True)
     h.add_argument("--from", dest="from_", help="sender (default: this project)")
     h.add_argument("--body-file")
-    h = hs.add_parser("archive", help="move a pending note to archive/ after acting on it")
+    h = hs.add_parser("claim", help="take a pending note for this session and print it; refused if another session owns it")
+    h.add_argument("name")
+    h.add_argument("--by", help="owner to record (default: this checkout's folder name)")
+    h = hs.add_parser("release", help="put a claimed note back in the inbox")
+    h.add_argument("name")
+    h = hs.add_parser("archive", help="move a pending or claimed note to archive/ after acting on it")
     h.add_argument("name")
     s.set_defaults(fn=cmd_handoff)
 

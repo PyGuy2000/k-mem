@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.7 (2026-11-05)
+
+**A handoff note now has one owner.** A worktree answers to its repo's name, so a note addressed to a repo reached every open worktree of that repo, with its full text. Nothing marked a note as taken. With 6 worktrees open on one repo, 2 sessions could start the same work, and the user had to catch it.
+
+`kmem handoff claim NAME` moves a note from `pending/` to `claimed/` in one rename and records the owner. The rename decides the race: 8 parallel claims in the test produce 1 winner. The others exit 1 and name the owner. `kmem handoff release NAME` puts a note back, `archive` accepts a claimed note, and `list` and the inventory show claimed notes. The owner can claim again to read a note it lost to a compaction.
+
+The inbox now prints the sender and subject only, so a session has to claim a note to read it. It also prints only on `startup` and `clear`. It used to print on `resume` too, which handed new work to a session in the middle of a task.
+
+Behaviour change: a note no longer lands in a session's context by itself. The session tells the user what is waiting, and claims a note when asked or when it has no other task.
+
 ## 0.1.6 (2026-09-17)
 
 **A command guard on Bash.** A session in another repo listed its own mistakes and every one was an absence claim drawn from an instrument that could not have shown otherwise: database variables unset on a machine with a database on the default port, then the tests called database-free; a 13-line registry listing piped through `tail -12`, then the missing line reported as absent; the ambient `python` and a generic command used where `CLAUDE.md` names the repo's interpreter and the repo's own index generator, which turned a green gate red twice. K-mem caught none of it, correctly for most of the list, since a spoken claim makes no tool call.

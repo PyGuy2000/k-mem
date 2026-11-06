@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -76,3 +77,117 @@ def test_cli_handoff_commands(tmp_path, isolated_env):
     assert r.returncode == 0 and "archived" in r.stdout
     r = subprocess.run([str(KMEM_BIN), "handoff", "inbox"], cwd=str(cwd), capture_output=True, text=True, env=env, timeout=60)
     assert "no pending handoff" in r.stdout
+
+
+def test_inbox_shows_the_subject_and_never_the_body(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    cwd = tmp_path / "target_app"
+    cwd.mkdir()
+    handoffs.send(cfg, "sender_app", "target_app", "Boundary decided", "## Ask\nsecret step\n")
+    box = handoffs.inbox(cwd, cfg)
+    assert "from sender_app: Boundary decided" in box and "kmem handoff claim" in box
+    assert "secret step" not in box
+
+
+def test_claim_gives_a_note_to_one_owner_and_refuses_the_next(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    cwd = tmp_path / "target_app"
+    cwd.mkdir()
+    note = handoffs.send(cfg, "sender_app", "target_app", "One job", "## Ask\ndo it\n")
+    held = handoffs.claim(cfg, note.name, "worktree-a", when=1_800_000_000)
+    assert held.parent == cfg.handoffs_dir / "claimed" and not note.exists()
+    meta = handoffs.parse_note(held)
+    assert meta["claimed_by"] == "worktree-a" and meta["claimed_at"].startswith("2027-") and meta["to"] == "target_app"
+    assert "## Ask\ndo it" in held.read_text(encoding="utf-8")
+    assert handoffs.inbox(cwd, cfg) == ""  # gone from every other session's list
+    with pytest.raises(FileExistsError, match="already claimed by worktree-a"):
+        handoffs.claim(cfg, note.name, "worktree-b")
+    with pytest.raises(FileNotFoundError, match="no pending note"):
+        handoffs.claim(cfg, "missing.md", "worktree-b")
+
+
+def test_parallel_claims_have_exactly_one_winner(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "Race")
+
+    def attempt(i: int) -> bool:
+        try:
+            handoffs.claim(cfg, note.name, f"worktree-{i}")
+            return True
+        except FileExistsError:
+            return False
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(attempt, range(8)))
+    assert results.count(True) == 1
+
+
+def test_release_returns_the_note_clean_and_archive_takes_a_claimed_note(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "Round trip", "## Ask\nx\n")
+    original = note.read_text(encoding="utf-8")
+    handoffs.claim(cfg, note.name, "worktree-a")
+    back = handoffs.release(cfg, note.name)
+    assert back == note and note.read_text(encoding="utf-8") == original
+    with pytest.raises(FileNotFoundError, match="no claimed note"):
+        handoffs.release(cfg, note.name)
+    held = handoffs.claim(cfg, note.name, "worktree-b")
+    moved = handoffs.archive(cfg, note.name)
+    assert moved.parent == cfg.handoffs_dir / "archive" and not held.exists()
+
+
+def test_cli_claim_prints_the_note_and_a_second_claim_exits_nonzero(tmp_path, isolated_env):
+    cwd = tmp_path / "cli_app"
+    cwd.mkdir()
+    env = dict(os.environ)
+
+    def kmem(*args: str, stdin: str = "") -> subprocess.CompletedProcess:
+        return subprocess.run([str(KMEM_BIN), "handoff", *args], cwd=str(cwd), input=stdin, capture_output=True, text=True, env=env, timeout=60)
+
+    assert kmem("send", "--to", "cli_app", "--subject", "hi", stdin="## Ask\nthe body\n").returncode == 0
+    name = kmem("inbox").stdout.split("--- ")[1].split(" ---")[0]
+    r = kmem("claim", name, "--by", "worktree-a")
+    assert r.returncode == 0 and "the body" in r.stdout and "claimed_by: worktree-a" in r.stdout, r.stderr
+    r = kmem("claim", name, "--by", "worktree-b")
+    assert r.returncode == 1 and "already claimed by worktree-a" in r.stderr
+    assert "claimed_by=worktree-a" in kmem("list").stdout
+    assert kmem("release", name).returncode == 0
+    assert "HANDOFF INBOX" in kmem("inbox").stdout
+    r = kmem("archive", "missing.md")
+    assert r.returncode == 1 and "no pending or claimed note" in r.stderr
+
+
+@pytest.mark.parametrize("bad", ["", ".", "..", "notes/", "note.txt"])
+def test_a_bad_name_is_refused_and_the_inbox_stays(tmp_path, isolated_env, bad):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "Stay put")
+    for act in (lambda: handoffs.claim(cfg, bad, "worktree-a"), lambda: handoffs.release(cfg, bad), lambda: handoffs.archive(cfg, bad)):
+        with pytest.raises(FileNotFoundError):
+            act()
+    assert note.is_file() and handoffs.list_claimed(cfg) == []
+
+
+def test_cli_claim_with_an_empty_name_exits_1_with_no_traceback(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "cli_app", "Stay put")
+    r = subprocess.run([str(KMEM_BIN), "handoff", "claim", ""], cwd=str(tmp_path), capture_output=True, text=True, env=dict(os.environ), timeout=60)
+    assert r.returncode == 1 and "not a note name" in r.stderr and "Traceback" not in r.stderr
+    assert note.is_file()
+
+
+def test_the_owner_can_claim_again_to_reread_a_note(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "Lost to compaction", "## Ask\nx\n")
+    held = handoffs.claim(cfg, note.name, "worktree-a")
+    stamped = held.read_text(encoding="utf-8")
+    assert handoffs.claim(cfg, note.name, "worktree-a") == held
+    assert held.read_text(encoding="utf-8") == stamped
+
+
+def test_release_keeps_claim_shaped_lines_in_the_note_body(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "About claims", "## State\nclaimed_by: someone\nclaimed_at: noon\n")
+    original = note.read_text(encoding="utf-8")
+    handoffs.claim(cfg, note.name, "worktree-a")
+    handoffs.release(cfg, note.name)
+    assert note.read_text(encoding="utf-8") == original

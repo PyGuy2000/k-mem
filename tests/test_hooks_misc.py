@@ -209,7 +209,11 @@ def test_session_start_creates_config_and_prints_inbox_packet_and_inventory(tmp_
     cfg = load_config()
     assert cfg.repos == {"gov": root.resolve()}
     r2 = _run("session_start.py", {"session_id": "s-start", "cwd": str(root), "source": "compact"}, tmp_path / "ev")
-    assert "Knowledge inventory" not in r2.stdout and "K-mem: created" not in r2.stdout and "HANDOFF INBOX" in r2.stdout
+    assert "Knowledge inventory" not in r2.stdout and "K-mem: created" not in r2.stdout and "HANDOFF INBOX" not in r2.stdout
+    r3 = _run("session_start.py", {"session_id": "s-start", "cwd": str(root), "source": "resume"}, tmp_path / "ev")
+    assert "HANDOFF INBOX" not in r3.stdout
+    r4 = _run("session_start.py", {"session_id": "s-start", "cwd": str(root), "source": "clear"}, tmp_path / "ev")
+    assert "HANDOFF INBOX" in r4.stdout and "body" not in r4.stdout.split("=== HANDOFF INBOX")[1].split("=== END HANDOFF INBOX ===")[0]
 
 
 def test_session_start_respects_config_flags_and_never_fails(tmp_path, isolated_env, write_config):
