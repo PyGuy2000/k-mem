@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8 (2026-11-05)
+
+**A note can name a ticket and go to the session that owns it.** A repo address still left the user choosing a worktree. `kmem handoff send --ticket ID` records the ticket, and the inbox and `list` show it. A second note for the same ticket and target joins the first while it is pending, so 2 sessions reporting one thing produce 1 note.
+
+The handoff skill now routes such a note: the sending session reads the ticket log for the owning session and, if that session is live, sends it the file name with `SendMessage`. With no live owner, the note waits for the next new session.
+
+Routing lives in the skill because `SendMessage` is a tool the model calls; there is no daemon. A test on a busy session sent one message each way: both waited for the end of the running tool call, and the session finished all 5 steps. `herdr agent prompt` arrived as a user message and `SendMessage` arrived marked as another session, so the skill forbids the first. A note must not carry the user's authority.
+
 ## 0.1.7 (2026-11-05)
 
 **A handoff note now has one owner.** A worktree answers to its repo's name, so a note addressed to a repo reached every open worktree of that repo, with its full text. Nothing marked a note as taken. With 6 worktrees open on one repo, 2 sessions could start the same work, and the user had to catch it.

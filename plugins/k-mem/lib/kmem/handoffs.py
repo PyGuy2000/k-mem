@@ -9,6 +9,9 @@ a subject line only and a session takes a note with ``claim``: one atomic
 rename from ``pending/`` to ``claimed/``, so exactly one session wins and the
 others are told who owns it. ``release`` puts a note back for another session.
 
+A note may name a ticket. A second note for the same ticket and target joins
+the first while it is pending, so a session sees one note and not two.
+
 A checkout answers to several names: its directory basename, the real
 repository name resolved through the git common dir (a worktree's folder is
 named after its branch), the ``repo`` its map names, and its configured
@@ -16,7 +19,7 @@ name. Matching any of them keeps notes addressed to a worktree name working
 while letting repo-addressed notes reach worktree sessions.
 
     kmem handoff inbox                              what is waiting for this project
-    kmem handoff send --to NAME --subject S [--body-file F]
+    kmem handoff send --to NAME --subject S [--ticket ID] [--body-file F]
     kmem handoff list
     kmem handoff claim NAME [--by WHO]              take a note; prints it
     kmem handoff release NAME                       put a claimed note back
@@ -34,7 +37,7 @@ from pathlib import Path
 from .config import Config, load_config
 from .govmap import find_repo_root, map_repo_name
 
-_FIELD = re.compile(r"^(from|to|created|subject|claimed_by|claimed_at):\s*(.+?)\s*$", re.I)
+_FIELD = re.compile(r"^(from|to|created|subject|ticket|claimed_by|claimed_at):\s*(.+?)\s*$", re.I)
 _CLAIM_LINE = re.compile(r"^claimed_(?:by|at):.*\n", re.M)
 
 BODY_TEMPLATE = """## State
@@ -134,7 +137,8 @@ def inbox(cwd: Path, config: Config | None = None) -> str:
         meta = parse_note(path)
         if meta.get("to", "") not in names:
             continue
-        blocks.append(f"--- {path.name} ---\nfrom {meta.get('from', '?')}: {meta.get('subject', '(no subject)')}\n")
+        ticket = f" [{meta['ticket']}]" if meta.get("ticket") else ""
+        blocks.append(f"--- {path.name} ---\nfrom {meta.get('from', '?')}{ticket}: {meta.get('subject', '(no subject)')}\n")
     if not blocks:
         return ""
     return "\n".join(
@@ -163,17 +167,33 @@ def note_name(from_: str, to: str, when: float | None = None) -> str:
     return f"{stamp}__{_slug(from_)}__to__{_slug(to)}.md"
 
 
-def compose(from_: str, to: str, subject: str, body: str = "", when: float | None = None) -> str:
+def compose(from_: str, to: str, subject: str, body: str = "", when: float | None = None, ticket: str = "") -> str:
     created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(when or time.time()))
     body = body.strip() or BODY_TEMPLATE.strip()
-    return f"---\nfrom: {from_}\nto: {to}\ncreated: {created}\nsubject: {subject.strip()}\n---\n\n{body}\n"
+    ticket_line = f"ticket: {ticket}\n" if ticket else ""
+    return f"---\nfrom: {from_}\nto: {to}\ncreated: {created}\nsubject: {subject.strip()}\n{ticket_line}---\n\n{body}\n"
 
 
-def send(config: Config, from_: str, to: str, subject: str, body: str = "", when: float | None = None) -> Path:
+def pending_for_ticket(config: Config, to: str, ticket: str) -> Path | None:
+    """The pending note already open for this ticket and target, if any."""
+    for path in list_pending(config):
+        meta = parse_note(path)
+        if meta.get("ticket") == ticket and meta.get("to") == to:
+            return path
+    return None
+
+
+def send(config: Config, from_: str, to: str, subject: str, body: str = "", when: float | None = None, ticket: str = "") -> Path:
     d = pending_dir(config)
     d.mkdir(parents=True, exist_ok=True)
+    existing = pending_for_ticket(config, to, ticket) if ticket else None
+    if existing is not None:
+        created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(when or time.time()))
+        with open(existing, "a", encoding="utf-8") as f:
+            f.write(f"\n## Update {created} from {from_}: {subject.strip()}\n\n{body.strip()}\n")
+        return existing
     path = d / note_name(from_, to, when)
-    path.write_text(compose(from_, to, subject, body, when), encoding="utf-8")
+    path.write_text(compose(from_, to, subject, body, when, ticket), encoding="utf-8")
     return path
 
 

@@ -191,3 +191,41 @@ def test_release_keeps_claim_shaped_lines_in_the_note_body(tmp_path, isolated_en
     handoffs.claim(cfg, note.name, "worktree-a")
     handoffs.release(cfg, note.name)
     assert note.read_text(encoding="utf-8") == original
+
+
+def test_a_ticket_shows_in_the_inbox_and_a_second_note_joins_the_first(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    cwd = tmp_path / "target_app"
+    cwd.mkdir()
+    first = handoffs.send(cfg, "app_a", "target_app", "Schema moved", "## Ask\nfirst ask\n", ticket="T-77")
+    second = handoffs.send(cfg, "app_b", "target_app", "Schema moved again", "second ask\n", ticket="T-77")
+    assert second == first and len(handoffs.list_pending(cfg)) == 1
+    text = first.read_text(encoding="utf-8")
+    assert "first ask" in text and "second ask" in text and "from app_b: Schema moved again" in text
+    assert handoffs.parse_note(first)["ticket"] == "T-77"
+    assert "from app_a [T-77]: Schema moved" in handoffs.inbox(cwd, cfg)
+
+
+def test_notes_only_join_on_the_same_ticket_and_target_while_pending(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    held = handoffs.send(cfg, "a", "target_app", "One", ticket="T-77", when=1_800_000_000)
+    other_ticket = handoffs.send(cfg, "a", "target_app", "Two", ticket="T-78", when=1_800_000_001)
+    other_target = handoffs.send(cfg, "a", "second_app", "Three", ticket="T-77", when=1_800_000_002)
+    no_ticket = handoffs.send(cfg, "a", "target_app", "Four", when=1_800_000_003)
+    assert len({held, other_ticket, other_target, no_ticket}) == 4
+    handoffs.claim(cfg, held.name, "worktree-a")
+    after = handoffs.send(cfg, "a", "target_app", "Five", ticket="T-77", when=1_800_000_004)
+    assert after != held and after.parent == cfg.handoffs_dir / "pending"  # a claimed note is never edited
+
+
+def test_cli_send_with_a_ticket_says_when_it_joined(tmp_path, isolated_env):
+    cwd = tmp_path / "cli_app"
+    cwd.mkdir()
+    env = dict(os.environ)
+
+    def kmem(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run([str(KMEM_BIN), "handoff", *args], cwd=str(cwd), input="## Ask\nx\n", capture_output=True, text=True, env=env, timeout=60)
+
+    assert kmem("send", "--to", "cli_app", "--ticket", "T-77", "--subject", "one").stdout.startswith("queued ")
+    assert kmem("send", "--to", "cli_app", "--ticket", "T-77", "--subject", "two").stdout.startswith("added to ")
+    assert "ticket=T-77" in kmem("list").stdout
