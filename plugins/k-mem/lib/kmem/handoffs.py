@@ -2,7 +2,12 @@
 
 Notes live in ``<handoffs_dir>/pending/`` and move to ``archive/`` once acted
 on. A note is addressed with a ``to:`` frontmatter line; the SessionStart
-hook delivers every pending note addressed to the project it opens in.
+hook lists every pending note addressed to the project it opens in.
+
+Several worktrees of one repo all answer to the repo name, so the inbox shows
+a subject line only and a session takes a note with ``claim``: one atomic
+rename from ``pending/`` to ``claimed/``, so exactly one session wins and the
+others are told who owns it. ``release`` puts a note back for another session.
 
 A checkout answers to several names: its directory basename, the real
 repository name resolved through the git common dir (a worktree's folder is
@@ -13,11 +18,14 @@ while letting repo-addressed notes reach worktree sessions.
     kmem handoff inbox                              what is waiting for this project
     kmem handoff send --to NAME --subject S [--body-file F]
     kmem handoff list
+    kmem handoff claim NAME [--by WHO]              take a note; prints it
+    kmem handoff release NAME                       put a claimed note back
     kmem handoff archive NAME
 """
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import time
@@ -26,8 +34,8 @@ from pathlib import Path
 from .config import Config, load_config
 from .govmap import find_repo_root, map_repo_name
 
-MAX_NOTE_BYTES = 8000
-_FIELD = re.compile(r"^(from|to|created|subject):\s*(.+?)\s*$", re.I)
+_FIELD = re.compile(r"^(from|to|created|subject|claimed_by|claimed_at):\s*(.+?)\s*$", re.I)
+_CLAIM_LINE = re.compile(r"^claimed_(?:by|at):.*\n", re.M)
 
 BODY_TEMPLATE = """## State
 What is done, what is in flight (PR numbers, branch names, ticket ids).
@@ -45,6 +53,10 @@ Anything the receiving session must not do (for example "do not git reset; uncom
 
 def pending_dir(config: Config) -> Path:
     return config.handoffs_dir / "pending"
+
+
+def claimed_dir(config: Config) -> Path:
+    return config.handoffs_dir / "claimed"
 
 
 def archive_dir(config: Config) -> Path:
@@ -106,21 +118,23 @@ def list_pending(config: Config | None = None) -> list[Path]:
     return sorted(d.glob("*.md")) if d.is_dir() else []
 
 
+def list_claimed(config: Config | None = None) -> list[Path]:
+    config = config or load_config()
+    d = claimed_dir(config)
+    return sorted(d.glob("*.md")) if d.is_dir() else []
+
+
 def inbox(cwd: Path, config: Config | None = None) -> str:
-    """The delivery text for every pending note addressed to this project, or ""."""
+    """The subject line of every pending note addressed to this project, or ""."""
     config = config or load_config()
     names = project_names(cwd, config)
     primary = names[-1] if names else "?"
     blocks: list[str] = []
     for path in list_pending(config):
-        to = parse_note(path).get("to", "")
-        if to not in names:
+        meta = parse_note(path)
+        if meta.get("to", "") not in names:
             continue
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")[:MAX_NOTE_BYTES]
-        except OSError:
-            continue
-        blocks.append(f"--- {path.name} ---\n{text.rstrip()}\n")
+        blocks.append(f"--- {path.name} ---\nfrom {meta.get('from', '?')}: {meta.get('subject', '(no subject)')}\n")
     if not blocks:
         return ""
     return "\n".join(
@@ -128,10 +142,13 @@ def inbox(cwd: Path, config: Config | None = None) -> str:
             f"=== HANDOFF INBOX: pending notes addressed to this project ({primary}) ===",
             *blocks,
             "=== END HANDOFF INBOX ===",
-            "Instruction to Claude: incorporate these notes into your working context now.",
-            "After acting on a note (or confirming it is stale), archive it with:",
-            "  kmem handoff archive <file>",
-            "Mention to the user that handoff notes were received and from where.",
+            "Instruction to Claude: these are subject lines only. Other sessions of this repo see the same list.",
+            "Tell the user what is waiting. Do not act on a note until this session owns it. To take one, run:",
+            "  kmem handoff claim <file>",
+            "It prints the note. Claim a note only when the user asks for it or this session has no other task.",
+            "If the claim is refused, another session owns the note; leave it alone.",
+            "When done (or the note is stale): kmem handoff archive <file>",
+            "If this session cannot do it: kmem handoff release <file>",
             "",
         ]
     )
@@ -160,10 +177,43 @@ def send(config: Config, from_: str, to: str, subject: str, body: str = "", when
     return path
 
 
+def claim(config: Config, name: str, owner: str, when: float | None = None) -> Path:
+    """Take a pending note for ``owner``. The rename is the lock: one caller wins."""
+    note = Path(name).name
+    dst = claimed_dir(config) / note
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.rename(pending_dir(config) / note, dst)
+    except FileNotFoundError:
+        if dst.is_file():
+            raise FileExistsError(f"{note} is already claimed by {parse_note(dst).get('claimed_by', 'another session')}") from None
+        raise FileNotFoundError(f"no pending note named {note}") from None
+    text = dst.read_text(encoding="utf-8", errors="replace")
+    if text.startswith("---\n"):
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(when or time.time()))
+        dst.write_text(f"---\nclaimed_by: {owner}\nclaimed_at: {stamp}\n{text[4:]}", encoding="utf-8")
+    return dst
+
+
+def release(config: Config, name: str) -> Path:
+    """Put a claimed note back in the inbox, with its owner lines removed."""
+    note = Path(name).name
+    src = claimed_dir(config) / note
+    if not src.is_file():
+        raise FileNotFoundError(f"no claimed note named {note}")
+    src.write_text(_CLAIM_LINE.sub("", src.read_text(encoding="utf-8", errors="replace")), encoding="utf-8")
+    dst = pending_dir(config) / note
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    src.replace(dst)
+    return dst
+
+
 def archive(config: Config, name: str) -> Path:
     src = pending_dir(config) / Path(name).name
     if not src.is_file():
-        raise FileNotFoundError(f"no pending note named {Path(name).name}")
+        src = claimed_dir(config) / Path(name).name
+    if not src.is_file():
+        raise FileNotFoundError(f"no pending or claimed note named {Path(name).name}")
     dst_dir = archive_dir(config)
     dst_dir.mkdir(parents=True, exist_ok=True)
     dst = dst_dir / src.name

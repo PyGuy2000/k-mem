@@ -79,7 +79,7 @@ The third command installs [DevFlow](https://github.com/PyGuy2000/devflow-mcp), 
 
 **Tiered project notes.** `STATE.md` is the current-state brief under a token budget, the one mandatory read. `plans.md` is one row per plan. `decisions/` holds one file per decision, indexed by a generated `decisions.md`. `key_facts.md`, `bugs.md`, `issues.md` are on demand. `kmem init` scaffolds all of it plus a block in `CLAUDE.md`.
 
-**Handoffs between sessions.** A mailbox outside every repo. A note addressed to a project loads automatically when a session opens there. A session-end guard fires once when a long session leaves changes behind with no note queued.
+**Handoffs between sessions.** A mailbox outside every repo. A note addressed to a project is listed when a session opens there, and the first session to claim it owns it, so 2 worktrees of one repo can't both take the same note. A session-end guard fires once when a long session leaves changes behind with no note queued.
 
 **Docs checks.** Four checks that fail: a decision cited with no file, a stale decisions index, a `STATE.md` over budget, a decision that cites a decision that does not exist. Each has a proof of red in the tests: a fixture where the violation is present and the check must fail.
 
@@ -179,6 +179,7 @@ To turn the gate off, create a file named `DISABLED` in the evidence directory. 
 | `kmem notes index`, `kmem notes adr "Title"`, `kmem notes archive` | regenerate the index, create the next decision, move old bug and work-log sections to `archive/` |
 | `kmem docs check`, `kmem docs stamp FILE` | fact documents whose source changed since they were synced; mark one synced |
 | `kmem handoff inbox`, `kmem handoff send --to NAME --subject S` | the notes waiting for this project; queue one for another |
+| `kmem handoff claim NAME`, `kmem handoff release NAME` | take a note for this session and print it; put it back |
 | `kmem install-git-hooks` | the pre-commit intent guard |
 | `kmem hook NAME` | run one hook with a payload on stdin, for testing |
 

@@ -5,7 +5,9 @@ Everything prints to stdout, which Claude Code adds to the session context.
 Every step is wrapped so one failure never hides the others, and the whole
 hook exits 0: a SessionStart hook must never break a session. Sections can
 be turned off in the config (``session_start``). The inventory is skipped
-after a compaction (``source == "compact"``) so it is not re-injected.
+after a compaction (``source == "compact"``) so it is not re-injected. The
+inbox shows only on a fresh context (``startup`` or ``clear``): a session that
+compacts or resumes is mid-task and must not pick up new work.
 """
 
 from __future__ import annotations
@@ -182,7 +184,7 @@ def run(payload: dict) -> list[str]:
     gate = Gate(cfg)
     if flags.get("stale_guard", True) and root is not None:
         out += _safe(lambda: stale_checkout_lines(root))
-    if flags.get("inbox", True):
+    if flags.get("inbox", True) and source in ("startup", "clear"):
         out += _safe(lambda: [text] if (text := inbox(cwd, cfg)) else [])
     if flags.get("packet", True) and root is not None:
         out += _safe(lambda: packet_lines(gate, root, session))
