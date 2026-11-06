@@ -177,11 +177,27 @@ def send(config: Config, from_: str, to: str, subject: str, body: str = "", when
     return path
 
 
-def claim(config: Config, name: str, owner: str, when: float | None = None) -> Path:
-    """Take a pending note for ``owner``. The rename is the lock: one caller wins."""
+def _note_file(name: str) -> str:
+    """The bare file name of a note. An empty name would resolve to the mailbox directories themselves."""
     note = Path(name).name
+    if not note.endswith(".md"):
+        raise FileNotFoundError(f"not a note name: {name!r}")
+    return note
+
+
+def claim(config: Config, name: str, owner: str, when: float | None = None) -> Path:
+    """Take a pending note for ``owner``. The rename is the lock: one caller wins.
+
+    The owner may claim again to read a note it lost to a compaction.
+    """
+    note = _note_file(name)
     dst = claimed_dir(config) / note
     dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.is_file():
+        held_by = parse_note(dst).get("claimed_by", "another session")
+        if held_by == owner:
+            return dst
+        raise FileExistsError(f"{note} is already claimed by {held_by}")
     try:
         os.rename(pending_dir(config) / note, dst)
     except FileNotFoundError:
@@ -197,11 +213,12 @@ def claim(config: Config, name: str, owner: str, when: float | None = None) -> P
 
 def release(config: Config, name: str) -> Path:
     """Put a claimed note back in the inbox, with its owner lines removed."""
-    note = Path(name).name
+    note = _note_file(name)
     src = claimed_dir(config) / note
     if not src.is_file():
         raise FileNotFoundError(f"no claimed note named {note}")
-    src.write_text(_CLAIM_LINE.sub("", src.read_text(encoding="utf-8", errors="replace")), encoding="utf-8")
+    head, fence, body = src.read_text(encoding="utf-8", errors="replace").partition("\n---\n")
+    src.write_text(_CLAIM_LINE.sub("", head) + fence + body, encoding="utf-8")
     dst = pending_dir(config) / note
     dst.parent.mkdir(parents=True, exist_ok=True)
     src.replace(dst)

@@ -155,3 +155,39 @@ def test_cli_claim_prints_the_note_and_a_second_claim_exits_nonzero(tmp_path, is
     assert "HANDOFF INBOX" in kmem("inbox").stdout
     r = kmem("archive", "missing.md")
     assert r.returncode == 1 and "no pending or claimed note" in r.stderr
+
+
+@pytest.mark.parametrize("bad", ["", ".", "..", "notes/", "note.txt"])
+def test_a_bad_name_is_refused_and_the_inbox_stays(tmp_path, isolated_env, bad):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "Stay put")
+    for act in (lambda: handoffs.claim(cfg, bad, "worktree-a"), lambda: handoffs.release(cfg, bad), lambda: handoffs.archive(cfg, bad)):
+        with pytest.raises(FileNotFoundError):
+            act()
+    assert note.is_file() and handoffs.list_claimed(cfg) == []
+
+
+def test_cli_claim_with_an_empty_name_exits_1_with_no_traceback(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "cli_app", "Stay put")
+    r = subprocess.run([str(KMEM_BIN), "handoff", "claim", ""], cwd=str(tmp_path), capture_output=True, text=True, env=dict(os.environ), timeout=60)
+    assert r.returncode == 1 and "not a note name" in r.stderr and "Traceback" not in r.stderr
+    assert note.is_file()
+
+
+def test_the_owner_can_claim_again_to_reread_a_note(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "Lost to compaction", "## Ask\nx\n")
+    held = handoffs.claim(cfg, note.name, "worktree-a")
+    stamped = held.read_text(encoding="utf-8")
+    assert handoffs.claim(cfg, note.name, "worktree-a") == held
+    assert held.read_text(encoding="utf-8") == stamped
+
+
+def test_release_keeps_claim_shaped_lines_in_the_note_body(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    note = handoffs.send(cfg, "sender_app", "target_app", "About claims", "## State\nclaimed_by: someone\nclaimed_at: noon\n")
+    original = note.read_text(encoding="utf-8")
+    handoffs.claim(cfg, note.name, "worktree-a")
+    handoffs.release(cfg, note.name)
+    assert note.read_text(encoding="utf-8") == original

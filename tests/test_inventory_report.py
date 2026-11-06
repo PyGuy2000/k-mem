@@ -30,6 +30,8 @@ def test_inventory_lists_configured_repos_decisions_and_handoffs(tmp_path, isola
     (handoffs / "archive").mkdir(parents=True)
     (handoffs / "pending/20260910-1200__my_app__to__other_app.md").write_text("---\nsubject: Boundary decided\n---\n", encoding="utf-8")
     (handoffs / "archive/20260701-0900__other_app__to__my_app.md").write_text("# Old note\n", encoding="utf-8")
+    (handoffs / "claimed").mkdir()
+    (handoffs / "claimed/20260911-1200__my_app__to__other_app.md").write_text("---\nclaimed_by: wt\nsubject: Held note\n---\n", encoding="utf-8")
     text = inventory.render(cfg)
     assert "## my_app" in text and "## missing" not in text
     assert "**authored config**" in text and "`my_app/config/rules.yaml` — Rules for the thing" in text
@@ -39,6 +41,7 @@ def test_inventory_lists_configured_repos_decisions_and_handoffs(tmp_path, isola
     assert "## handoffs" in text
     assert "20260910 my_app -> other_app — Boundary decided" in text
     assert "20260701 other_app -> my_app — Old note" in text
+    assert "20260911 my_app -> other_app — Held note" in text
     assert "ok" in inventory.stats_line(text, cfg.inventory_line_budget)
 
 

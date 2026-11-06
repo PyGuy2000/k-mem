@@ -4,7 +4,7 @@
 
 **A handoff note now has one owner.** A worktree answers to its repo's name, so a note addressed to a repo reached every open worktree of that repo, with its full text. Nothing marked a note as taken. With 6 worktrees open on one repo, 2 sessions could start the same work, and the user had to catch it.
 
-`kmem handoff claim NAME` moves a note from `pending/` to `claimed/` in one rename and records the owner. The rename decides the race: 8 parallel claims in the test produce 1 winner. The others exit 1 and name the owner. `kmem handoff release NAME` puts a note back, `archive` accepts a claimed note, and `list` shows who holds what.
+`kmem handoff claim NAME` moves a note from `pending/` to `claimed/` in one rename and records the owner. The rename decides the race: 8 parallel claims in the test produce 1 winner. The others exit 1 and name the owner. `kmem handoff release NAME` puts a note back, `archive` accepts a claimed note, and `list` and the inventory show claimed notes. The owner can claim again to read a note it lost to a compaction.
 
 The inbox now prints the sender and subject only, so a session has to claim a note to read it. It also prints only on `startup` and `clear`. It used to print on `resume` too, which handed new work to a session in the middle of a task.
 

@@ -8,7 +8,7 @@ maintain and it would rot.
 
 Three classes are enumerated: files (per-repo knowledge artifacts, by the
 sections the config names), DECISIONS (every ADR identifier + title across
-every repo), and HANDOFFS (every note's subject, pending AND archive, since
+every repo), and HANDOFFS (every note's subject, pending, claimed AND archive, since
 a recency-limited list is exactly what misses an old decision).
 
 Two properties, do not remove either:
@@ -130,16 +130,16 @@ def decisions_section(repos: dict[str, Path]) -> list[str]:
 
 
 def handoff_section(handoffs: Path) -> list[str]:
-    """The cross-repo decision mailbox, pending and archive, listed in full."""
+    """The cross-repo decision mailbox, pending, claimed and archive, listed in full."""
     if not handoffs.is_dir():
         return []
-    notes = _sorted(p for d in ("pending", "archive") for p in (handoffs / d).glob("*.md"))
+    notes = _sorted(p for d in ("pending", "claimed", "archive") for p in (handoffs / d).glob("*.md"))
     if not notes:
         return []
     out = [
         "## handoffs (cross-repo decisions)",
         "",
-        f"`{handoffs}`: all {len(notes)} notes, pending and archive.",
+        f"`{handoffs}`: all {len(notes)} notes, pending, claimed and archive.",
         "Outside every git repo, so no code index sees it. Listed in full:",
         "a recency-limited list is exactly what misses an old decision.",
         "",

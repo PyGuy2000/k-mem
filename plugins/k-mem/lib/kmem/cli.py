@@ -379,7 +379,7 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     sender = args.from_ or handoffs.project_names(cwd, cfg)[-1]
     path = handoffs.send(cfg, sender, args.to, args.subject, body)
     print(f"queued {path}")
-    print(f"It loads automatically when a session opens in {args.to}.")
+    print(f"The next new session in {args.to} will list it.")
     return 0
 
 
@@ -504,7 +504,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("handoff", help="notes between sessions")
     hs = s.add_subparsers(dest="handoff_cmd", required=True)
     hs.add_parser("inbox", help="pending notes addressed to this project")
-    hs.add_parser("list", help="every pending note")
+    hs.add_parser("list", help="every pending and claimed note")
     h = hs.add_parser("send", help="queue a note for another project (body from --body-file or stdin)")
     h.add_argument("--to", required=True, help="target project name")
     h.add_argument("--subject", required=True)
