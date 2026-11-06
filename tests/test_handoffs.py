@@ -229,3 +229,33 @@ def test_cli_send_with_a_ticket_says_when_it_joined(tmp_path, isolated_env):
     assert kmem("send", "--to", "cli_app", "--ticket", "T-77", "--subject", "one").stdout.startswith("queued ")
     assert kmem("send", "--to", "cli_app", "--ticket", "T-77", "--subject", "two").stdout.startswith("added to ")
     assert "ticket=T-77" in kmem("list").stdout
+
+
+def test_a_join_that_loses_the_race_to_a_claim_starts_a_new_note(tmp_path, isolated_env, monkeypatch):
+    cfg = Config.defaults(isolated_env)
+    cwd = tmp_path / "target_app"
+    cwd.mkdir()
+    note = handoffs.send(cfg, "app_a", "target_app", "First", "## Ask\nfirst ask\n", ticket="T-77", when=1_800_000_000)
+    lookup = handoffs.pending_for_ticket
+
+    def claim_right_after_lookup(*args):
+        found = lookup(*args)
+        if found is not None:
+            handoffs.claim(cfg, found.name, "worktree-a")
+        return found
+
+    monkeypatch.setattr(handoffs, "pending_for_ticket", claim_right_after_lookup)
+    path, joined = handoffs.deliver(cfg, "app_b", "target_app", "Second", "second ask\n", ticket="T-77", when=1_800_000_001)
+    assert not joined and path != note and not note.exists()
+    assert handoffs.parse_note(path)["to"] == "target_app" and "second ask" in path.read_text(encoding="utf-8")
+    assert "second ask" not in (cfg.handoffs_dir / "claimed" / note.name).read_text(encoding="utf-8")
+    assert "from app_b [T-77]: Second" in handoffs.inbox(cwd, cfg)
+
+
+def test_a_body_line_is_never_read_as_a_field_and_a_ticket_is_stripped(tmp_path, isolated_env):
+    cfg = Config.defaults(isolated_env)
+    plain = handoffs.send(cfg, "a", "target_app", "No ticket", "Ticket: T-9 is blocked\n", when=1_800_000_000)
+    assert "ticket" not in handoffs.parse_note(plain)
+    first = handoffs.send(cfg, "a", "target_app", "One", ticket=" T-77 ", when=1_800_000_001)
+    assert handoffs.parse_note(first)["ticket"] == "T-77"
+    assert handoffs.send(cfg, "a", "target_app", "Two", ticket="T-77", when=1_800_000_002) == first

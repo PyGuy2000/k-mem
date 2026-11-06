@@ -105,8 +105,8 @@ def parse_note(path: Path) -> dict[str, str]:
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
             for i, line in enumerate(f):
-                if i > 12:
-                    break
+                if i > 12 or (i > 0 and line.strip() == "---"):
+                    break  # the body is not frontmatter, even when a line looks like a field
                 m = _FIELD.match(line)
                 if m:
                     meta.setdefault(m.group(1).lower(), m.group(2))
@@ -183,18 +183,34 @@ def pending_for_ticket(config: Config, to: str, ticket: str) -> Path | None:
     return None
 
 
-def send(config: Config, from_: str, to: str, subject: str, body: str = "", when: float | None = None, ticket: str = "") -> Path:
+def _join(path: Path, text: str) -> bool:
+    """Append to a pending note. False if a claim moved it first: no O_CREAT, so nothing lands at the old path."""
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_APPEND)
+    except FileNotFoundError:
+        return False
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+    return True
+
+
+def deliver(config: Config, from_: str, to: str, subject: str, body: str = "", when: float | None = None, ticket: str = "") -> tuple[Path, bool]:
+    """Queue a note, or join the pending note for this ticket. Returns the path and whether it joined."""
     d = pending_dir(config)
     d.mkdir(parents=True, exist_ok=True)
+    ticket = ticket.strip()
     existing = pending_for_ticket(config, to, ticket) if ticket else None
     if existing is not None:
         created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(when or time.time()))
-        with open(existing, "a", encoding="utf-8") as f:
-            f.write(f"\n## Update {created} from {from_}: {subject.strip()}\n\n{body.strip()}\n")
-        return existing
+        if _join(existing, f"\n## Update {created} from {from_}: {subject.strip()}\n\n{body.strip()}\n"):
+            return existing, True
     path = d / note_name(from_, to, when)
     path.write_text(compose(from_, to, subject, body, when, ticket), encoding="utf-8")
-    return path
+    return path, False
+
+
+def send(config: Config, from_: str, to: str, subject: str, body: str = "", when: float | None = None, ticket: str = "") -> Path:
+    return deliver(config, from_, to, subject, body, when, ticket)[0]
 
 
 def _note_file(name: str) -> str:

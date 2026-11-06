@@ -356,7 +356,8 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         claimed = handoffs.list_claimed(cfg)
         for p in claimed:
             meta = handoffs.parse_note(p)
-            print(f"{p.name}  to={meta.get('to', '?')}  claimed_by={meta.get('claimed_by', '?')}  since={meta.get('claimed_at', '?')}  {meta.get('subject', '')}")
+            ticket = f"ticket={meta['ticket']}  " if meta.get("ticket") else ""
+            print(f"{p.name}  to={meta.get('to', '?')}  claimed_by={meta.get('claimed_by', '?')}  since={meta.get('claimed_at', '?')}  {ticket}{meta.get('subject', '')}")
         print(f"{len(notes)} pending, {len(claimed)} claimed in {cfg.handoffs_dir}", file=sys.stderr)
         return 0
     if args.handoff_cmd in ("claim", "release", "archive"):
@@ -378,8 +379,7 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     elif not sys.stdin.isatty():
         body = sys.stdin.read()
     sender = args.from_ or handoffs.project_names(cwd, cfg)[-1]
-    joined = bool(args.ticket) and handoffs.pending_for_ticket(cfg, args.to, args.ticket) is not None
-    path = handoffs.send(cfg, sender, args.to, args.subject, body, ticket=args.ticket or "")
+    path, joined = handoffs.deliver(cfg, sender, args.to, args.subject, body, ticket=args.ticket or "")
     print(f"{'added to' if joined else 'queued'} {path}")
     print(f"The next new session in {args.to} will list it.")
     return 0

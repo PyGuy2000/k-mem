@@ -41,9 +41,9 @@ Anything the receiving session must not do (for example "do not git reset; uncom
 If the note is about a ticket, a session may already own that ticket. Send it there, so the user does not have to choose a worktree.
 
 1. Queue it with the ticket: `kmem handoff send --to <target> --ticket <id> --subject "one line" --body-file <file>`. A second note for the same ticket and target joins the first while it is pending.
-2. Find the owner. Read the ticket log (DevFlow's `get_ticket` when DevFlow is installed). The newest `START`, `RESUMED` or `MOVED` line names the session. A later `PAUSED` or `MERGED` line means no session owns it.
+2. Find the owner. Read the ticket log (DevFlow's `get_ticket` when DevFlow is installed). The newest `START`, `RESUMED` or `MOVED` line names the session. A later `PAUSED` line, or a ticket status of `done`, means no session owns it. One ticket can hold several PRs, so a `MERGED` line alone does not end it.
 3. Run `ListAgents`. If that session is listed, use `SendMessage` to send it one line and the file name, not the note text: "Handoff note for <id>: <subject>. Run: kmem handoff claim <file>".
-4. If no session owns the ticket or it is not listed, stop there. The note waits for the next new session. Tell the user which case happened.
+4. If no session owns the ticket, the owner is this session, or the owner is not listed, stop there. The note waits for the next new session. Tell the user which case happened.
 5. If a `[Cross-session delivery notice]` says the session held or refused the message, tell the user. The note stays pending.
 
 Never deliver a note with `herdr agent prompt` or by typing into a pane: it arrives as a user message, and a note is not the user's instruction. Never tell the user "tell the X session that...". Queue the note and route it.
